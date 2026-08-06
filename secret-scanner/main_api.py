@@ -1,39 +1,61 @@
 import uuid
-from fastapi import FastAPI, Depends, HTTPException, status, BackgroundTasks
-from sqlalchemy.orm import Session
 import os
+import logging
+from fastapi import FastAPI, Depends, HTTPException, status, BackgroundTasks
+from fastapi.responses import FileResponse
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
+
 from src.db.database import get_db, engine, Base, SessionLocal
 from src.db.models import ScanJob
 from src.api.schemas import ScanRequest, ScanJobResponse
 from src.scanner.orchestrator import run_scan_job
-from fastapi.responses import FileResponse
-from fastapi.middleware.cors import CORSMiddleware
 
-Base.metadata.create_all(bind=engine)
+# Configure logger for Render visibility
+logger = logging.getLogger("uvicorn.error")
 
 app = FastAPI(
     title="GitHub Repo Security & Health Scanner API",
     version="1.0.0"
 )
 
-origins = [
-    "https://secure-scan-plum.vercel.app", 
-    "http://localhost:5173",                 
+# 1. FIXED CORS CONFIGURATION
+# Specific origins are required when allow_credentials=True
+allowed_origins = [
+    "https://secure-scan-plum.vercel.app",  # Your Vercel domain
+    "http://localhost:5173",                 # Local Vite development
     "http://localhost:3000"
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://secure-scan-plum.vercel.app"],            
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],            
-    allow_headers=["*"],             
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
-# Helper function for background task database session
+
+# 2. SAFE DB INITIALIZATION
+@app.on_event("startup")
+def startup_db_client():
+    try:
+        Base.metadata.create_all(bind=engine)
+        logger.info("Database tables initialized successfully.")
+    except Exception as e:
+        logger.error(f"Database setup error on startup: {e}")
+
+# 3. ROBUST BACKGROUND TASK WITH EXCEPTION HANDLING
 def process_scan_background(job_id: str):
     db = SessionLocal()
     try:
         run_scan_job(job_id, db)
+    except Exception as e:
+        logger.error(f"Background task failed for job {job_id}: {e}")
+        # Update job status to FAILED so frontend doesn't hang in PENDING state
+        job = db.query(ScanJob).filter(ScanJob.id == job_id).first()
+        if job:
+            job.status = "FAILED"
+            db.commit()
     finally:
         db.close()
 
@@ -63,7 +85,7 @@ def create_scan_job(
     db.commit()
     db.refresh(new_job)
 
-    # Run scanner in background without blocking API response
+    # Queue background scanning job
     background_tasks.add_task(process_scan_background, new_job.id)
     
     return new_job

@@ -16,14 +16,19 @@ app = FastAPI(
     version="1.0.0"
 )
 
+origins = [
+    "https://secure-scan-plum.vercel.app", 
+    "http://localhost:5173",                 
+    "http://localhost:3000"
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  
+    allow_origins=origins,            
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["*"],            
+    allow_headers=["*"],             
 )
-
 # Helper function for background task database session
 def process_scan_background(job_id: str):
     db = SessionLocal()

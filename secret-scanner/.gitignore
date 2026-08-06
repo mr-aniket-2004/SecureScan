@@ -1,0 +1,51 @@
+# ==========================================
+# Python & Virtual Environments
+# ==========================================
+venv/
+.venv/
+env/
+ENV/
+build/
+dist/
+*.egg-info/
+
+# Python Bytecode & Cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# ==========================================
+# Environment Variables & Secrets
+# ==========================================
+.env
+.env.local
+.env.*
+*.pem
+*.key
+
+# ==========================================
+# Application Runtime Data & Scans
+# ==========================================
+# Local SQLite DBs (if testing locally)
+*.db
+*.sqlite
+*.sqlite3
+
+# Downloaded/Generated PDF Reports
+*.pdf
+/reports/
+/pdf_reports/
+
+# Temporary cloned repositories created during scanning
+/tmp/
+/cloned_repos/
+/scanned_repos/
+
+# ==========================================
+# IDE & System Files
+# ==========================================
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db

@@ -49,3 +49,11 @@ __pycache__/
 *.swp
 .DS_Store
 Thumbs.db
+
+
+# ==========================================
+# Local Tests Folder (Ignored)
+# ==========================================
+tests/
+.pytest_cache/
+.coverage

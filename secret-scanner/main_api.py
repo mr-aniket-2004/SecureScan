@@ -19,10 +19,10 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# 1. FIXED CORS CONFIGURATION
-# Specific origins are required when allow_credentials=True
+# 1. CORS CONFIGURATION
+# Exact frontend origins allowed to send credentials and headers
 allowed_origins = [
-    "https://secure-scan-plum.vercel.app",  # Your Vercel domain
+    "https://secure-scan-plum.vercel.app",  # Production Vercel domain
     "http://localhost:5173",                 # Local Vite development
     "http://localhost:3000"
 ]
@@ -35,6 +35,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # 2. SAFE DB INITIALIZATION
 @app.on_event("startup")
 def startup_db_client():
@@ -44,14 +45,15 @@ def startup_db_client():
     except Exception as e:
         logger.error(f"Database setup error on startup: {e}")
 
-# 3. ROBUST BACKGROUND TASK WITH EXCEPTION HANDLING
+
+# 3. BACKGROUND TASK WORKER
 def process_scan_background(job_id: str):
     db = SessionLocal()
     try:
         run_scan_job(job_id, db)
     except Exception as e:
         logger.error(f"Background task failed for job {job_id}: {e}")
-        # Update job status to FAILED so frontend doesn't hang in PENDING state
+        # Mark job as FAILED so frontend stops polling endlessly
         job = db.query(ScanJob).filter(ScanJob.id == job_id).first()
         if job:
             job.status = "FAILED"
@@ -65,13 +67,16 @@ def root():
     return {"message": "Security Scanner API is running!"}
 
 
+# 4. ENDPOINTS (DUAL DECORATORS TO PREVENT 307 PREFLIGHT CANCELLATIONS)
+
 @app.post("/api/v1/scan", response_model=ScanJobResponse, status_code=status.HTTP_201_CREATED)
+@app.post("/api/v1/scan/", response_model=ScanJobResponse, status_code=status.HTTP_201_CREATED)
 def create_scan_job(
     request: ScanRequest, 
     background_tasks: BackgroundTasks, 
     db: Session = Depends(get_db)
 ):
-    """Triggers a new scan job asynchronously in background."""
+    """Triggers a new scan job asynchronously in the background."""
     new_job = ScanJob(
         id=str(uuid.uuid4()),
         repo_url=str(request.repo_url),
@@ -85,15 +90,16 @@ def create_scan_job(
     db.commit()
     db.refresh(new_job)
 
-    # Queue background scanning job
+    # Queue scanning execution task
     background_tasks.add_task(process_scan_background, new_job.id)
     
     return new_job
 
 
 @app.get("/api/v1/scan/{job_id}", response_model=ScanJobResponse)
+@app.get("/api/v1/scan/{job_id}/", response_model=ScanJobResponse)
 def get_scan_job(job_id: str, db: Session = Depends(get_db)):
-    """Fetches job status and results for a given job_id."""
+    """Fetches job status and scan results for a given job_id."""
     job = db.query(ScanJob).filter(ScanJob.id == job_id).first()
     if not job:
         raise HTTPException(
@@ -104,6 +110,7 @@ def get_scan_job(job_id: str, db: Session = Depends(get_db)):
 
 
 @app.get("/api/v1/scan/{job_id}/pdf")
+@app.get("/api/v1/scan/{job_id}/pdf/")
 def download_pdf_report(job_id: str, db: Session = Depends(get_db)):
     """Downloads the generated PDF report for a completed scan job."""
     job = db.query(ScanJob).filter(ScanJob.id == job_id).first()

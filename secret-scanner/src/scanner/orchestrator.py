@@ -5,7 +5,7 @@ from src.db.models import ScanJob, ScanFinding
 from src.scanner.git_cloner import GitCloner
 from src.scanner.secret_detector import SecretDetector
 from src.scanner.dependency_checker import DependencyChecker
-from src.scanner.ai_advisor import GeminiAdvisor
+# from src.scanner.ai_advisor import GeminiAdvisor
 from src.reports.pdf_generator import PDFReportGenerator
 from src.api.websocket import ws_manager
 
@@ -50,16 +50,16 @@ async def run_scan_job(job_id: str, db: Session):
         await ws_manager.broadcast_log(
             job_id, "AI_ANALYSIS", "Running Gemini AI security advisor on detected vulnerabilities...", 80
         )
-        ai_advisor = GeminiAdvisor()
+        # ai_advisor = GeminiAdvisor()
         
         saved_findings = []
         for item in all_findings:
             # Generate AI Fix Recommendation per finding
-            remediation_advice = ai_advisor.generate_remediation(
-                issue_type=item["issue_type"],
-                raw_match=item["raw_match"],
-                file_path=item["file_path"]
-            )
+            # remediation_advice = ai_advisor.generate_remediation(
+            #     issue_type=item["issue_type"],
+            #     raw_match=item["raw_match"],
+            #     file_path=item["file_path"]
+            # )
 
             finding_record = ScanFinding(
                 job_id=job.id,
@@ -68,7 +68,7 @@ async def run_scan_job(job_id: str, db: Session):
                 issue_type=item["issue_type"],
                 severity=item["severity"],
                 raw_match=item["raw_match"],
-                remediation=remediation_advice  # New DB field for AI remediation
+                # remediation=remediation_advice  # New DB field for AI remediation
             )
             db.add(finding_record)
             saved_findings.append(finding_record)

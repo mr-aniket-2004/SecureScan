@@ -1,6 +1,7 @@
 import uuid
 import os
 import logging
+from contextlib import asynccontextmanager
 from fastapi import (
     FastAPI, 
     Depends, 
@@ -19,53 +20,49 @@ from src.db.models import ScanJob
 from src.api.schemas import ScanRequest, ScanJobResponse
 from src.scanner.orchestrator import run_scan_job
 
-
-
-
 # Configure logger for Render visibility
 logger = logging.getLogger("uvicorn.error")
 
+# Modern lifespan context manager replacing deprecated @app.on_event
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        Base.metadata.create_all(bind=engine)
+        logger.info("Database tables initialized successfully.")
+    except Exception as e:
+        logger.error(f"Database setup error on startup: {e}")
+    yield
+
 app = FastAPI(
     title="GitHub Repo Security & Health Scanner API",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
-# 1. Define allowed origins
+# 1. CORS Configuration
 origins = [
     "https://secure-scan-beta.vercel.app",  # Production frontend
     "http://localhost:5173",               # Local Vite server
     "http://localhost:3000",               # Local React server
 ]
 
-# 2. Add CORS middleware (MUST be added before routes)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_origin_regex=r"https://secure-scan-.*\.vercel\.app",  # Allows Vercel preview deployments
+    allow_origin_regex=r"https://secure-scan-.*\.vercel\.app",  # Vercel preview deployments
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
-
-# 2. SAFE DB INITIALIZATION
-@app.on_event("startup")
-def startup_db_client():
-    try:
-        Base.metadata.create_all(bind=engine)
-        logger.info("Database tables initialized successfully.")
-    except Exception as e:
-        logger.error(f"Database setup error on startup: {e}")
-
-
-# 3. ASYNC BACKGROUND TASK WORKER
-async def process_scan_background(job_id: str):
-    """Executes the async scan orchestrator in the background and manages DB sessions."""
+# 2. SYNCHRONOUS BACKGROUND TASK WORKER
+def process_scan_background(job_id: str):
+    """Executes the scan orchestrator in a threadpool worker and manages DB sessions."""
     db = SessionLocal()
     try:
-        # Await the async orchestrator pipeline
-        await run_scan_job(job_id, db)
+        # Call the synchronous orchestrator pipeline (DO NOT await)
+        run_scan_job(job_id, db)
     except Exception as e:
         logger.error(f"Background task failed for job {job_id}: {e}")
         # Mark job as FAILED so frontend stops waiting endlessly
@@ -82,10 +79,9 @@ def root():
     return {"message": "Security Scanner API is running!"}
 
 
-# 4. REST ENDPOINTS
+# 3. REST ENDPOINTS
 
 @app.post("/api/v1/scan", response_model=ScanJobResponse, status_code=status.HTTP_201_CREATED)
-@app.post("/api/v1/scan/", response_model=ScanJobResponse, status_code=status.HTTP_201_CREATED)
 def create_scan_job(
     request: ScanRequest, 
     background_tasks: BackgroundTasks, 
@@ -105,14 +101,13 @@ def create_scan_job(
     db.commit()
     db.refresh(new_job)
 
-    # Queue scanning execution task
+    # Queue scanning execution task to FastAPI threadpool
     background_tasks.add_task(process_scan_background, new_job.id)
     
     return new_job
 
 
 @app.get("/api/v1/scan/{job_id}", response_model=ScanJobResponse)
-@app.get("/api/v1/scan/{job_id}/", response_model=ScanJobResponse)
 def get_scan_job(job_id: str, db: Session = Depends(get_db)):
     """Fetches job status and scan results for a given job_id."""
     job = db.query(ScanJob).filter(ScanJob.id == job_id).first()
@@ -125,7 +120,6 @@ def get_scan_job(job_id: str, db: Session = Depends(get_db)):
 
 
 @app.get("/api/v1/scan/{job_id}/pdf")
-@app.get("/api/v1/scan/{job_id}/pdf/")
 def download_pdf_report(job_id: str, db: Session = Depends(get_db)):
     """Downloads the generated PDF report for a completed scan job."""
     job = db.query(ScanJob).filter(ScanJob.id == job_id).first()
@@ -140,5 +134,3 @@ def download_pdf_report(job_id: str, db: Session = Depends(get_db)):
         filename=f"Security_Report_{job_id[:8]}.pdf",
         media_type="application/pdf"
     )
-
- 

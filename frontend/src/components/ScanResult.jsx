@@ -1,31 +1,62 @@
 import React from "react";
 
+/**
+ * Combines secrets, vulnerabilities, and general findings into a single array,
+ * matching how the backend PDF generator aggregates table rows.
+ */
+function extractAllFindings(data) {
+  if (!data || typeof data !== "object") return [];
+
+  let combined = [];
+
+  // Helper to safely append arrays
+  const appendIfArray = (arr) => {
+    if (Array.isArray(arr)) {
+      combined = [...combined, ...arr];
+    }
+  };
+
+  // 1. Direct top-level checks
+  appendIfArray(data.findings);
+  appendIfArray(data.secrets);
+  appendIfArray(data.vulnerabilities);
+  appendIfArray(data.detected_secrets);
+
+  // 2. Nested checks (if data is wrapped inside data.results, data.data, or data.details)
+  const nested = data.results || data.data || data.details || data.report;
+  if (nested && typeof nested === "object") {
+    appendIfArray(nested.findings);
+    appendIfArray(nested.secrets);
+    appendIfArray(nested.vulnerabilities);
+  }
+
+  return combined;
+}
+
 export default function ScanResults({ scanResult, fallbackRepoUrl, onDownloadPDF }) {
-  const findingsList =
-    scanResult?.findings ||
-    scanResult?.secrets ||
-    scanResult?.vulnerabilities ||
-    scanResult?.results ||
-    [];
+  // Extract and combine all items into a single array for rendering
+  const findingsList = extractAllFindings(scanResult);
 
-  const hasMetricsIssues =
-    (scanResult?.secrets_found ?? 0) > 0 ||
-    (scanResult?.vulnerabilities_found ?? 0) > 0;
+  const secretsCount =
+    scanResult?.secrets_found ??
+    scanResult?.summary?.secrets_found ??
+    0;
 
-  const totalCount =
-    findingsList.length > 0
-      ? findingsList.length
-      : hasMetricsIssues
-      ? (scanResult?.secrets_found || 0) + (scanResult?.vulnerabilities_found || 0)
-      : 0;
+  const vulnCount =
+    scanResult?.vulnerabilities_found ??
+    scanResult?.summary?.vulnerabilities_found ??
+    0;
+
+  const totalReportedCount = secretsCount + vulnCount;
 
   return (
     <section className="bg-[#0D121F] border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6 animate-fade-in">
+      {/* Header */}
       <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 border-b border-slate-800 pb-4">
         <div>
           <h2 className="text-lg font-bold text-white">Scan Audit Summary</h2>
           <p className="text-xs font-mono text-slate-400 mt-1">
-            {scanResult.repo_url || fallbackRepoUrl}
+            {scanResult?.repo_url || fallbackRepoUrl}
           </p>
         </div>
 
@@ -40,6 +71,7 @@ export default function ScanResults({ scanResult, fallbackRepoUrl, onDownloadPDF
         </button>
       </div>
 
+      {/* Grade & Metric Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-[#070A10] p-4 rounded-xl border border-slate-800 text-center">
           <span className="text-xs text-slate-400 font-medium uppercase tracking-wider block mb-1">
@@ -47,14 +79,14 @@ export default function ScanResults({ scanResult, fallbackRepoUrl, onDownloadPDF
           </span>
           <span
             className={`text-4xl font-black ${
-              scanResult.security_score === "A"
+              scanResult?.security_score === "A"
                 ? "text-emerald-400"
-                : scanResult.security_score === "C"
+                : scanResult?.security_score === "C"
                 ? "text-amber-400"
                 : "text-red-500"
             }`}
           >
-            {scanResult.security_score || "A"}
+            {scanResult?.security_score || "A"}
           </span>
         </div>
 
@@ -63,7 +95,7 @@ export default function ScanResults({ scanResult, fallbackRepoUrl, onDownloadPDF
             Secrets Leaked
           </span>
           <span className="text-4xl font-black text-red-400">
-            {scanResult.secrets_found ?? 0}
+            {secretsCount}
           </span>
         </div>
 
@@ -72,18 +104,19 @@ export default function ScanResults({ scanResult, fallbackRepoUrl, onDownloadPDF
             Vulnerabilities
           </span>
           <span className="text-4xl font-black text-amber-400">
-            {scanResult.vulnerabilities_found ?? 0}
+            {vulnCount}
           </span>
         </div>
       </div>
 
+      {/* Detailed Findings Table */}
       <div className="space-y-4 pt-4 border-t border-slate-800">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-bold text-slate-200 tracking-wide uppercase font-mono">
             Detailed Findings
           </h3>
           <span className="text-xs text-slate-400 font-mono">
-            Total Issues: {totalCount}
+            Total Issues: {findingsList.length}
           </span>
         </div>
 
@@ -108,10 +141,32 @@ export default function ScanResults({ scanResult, fallbackRepoUrl, onDownloadPDF
               </thead>
               <tbody className="divide-y divide-slate-800/60 text-slate-300">
                 {findingsList.map((item, idx) => {
-                  const severity = (item.severity || item.level || "HIGH").toUpperCase();
-                  const type = item.type || item.issue_type || item.rule_name || "Unclassified Finding";
-                  const filePath = item.file_path || item.file || item.path || "N/A";
-                  const lineNo = item.line_number || item.line || item.line_no || "-";
+                  const severity = (
+                    item.severity ||
+                    item.level ||
+                    "HIGH"
+                  ).toUpperCase();
+
+                  const type =
+                    item.type ||
+                    item.issue_type ||
+                    item.rule_name ||
+                    item.name ||
+                    item.description ||
+                    "Unclassified Finding";
+
+                  const filePath =
+                    item.file_path ||
+                    item.file ||
+                    item.path ||
+                    item.filename ||
+                    "-";
+
+                  const lineNo =
+                    item.line_number ||
+                    item.line ||
+                    item.line_no ||
+                    "-";
 
                   return (
                     <React.Fragment key={idx}>
@@ -129,14 +184,25 @@ export default function ScanResults({ scanResult, fallbackRepoUrl, onDownloadPDF
                             {severity}
                           </span>
                         </td>
-                        <td className="py-3 px-4 font-medium text-slate-200">{type}</td>
-                        <td className="py-3 px-4 text-slate-400 break-all">{filePath}</td>
-                        <td className="py-3 px-4 text-center font-bold text-slate-300">{lineNo}</td>
+                        <td className="py-3 px-4 font-medium text-slate-200">
+                          {type}
+                        </td>
+                        <td className="py-3 px-4 text-slate-400 break-all">
+                          {filePath}
+                        </td>
+                        <td className="py-3 px-4 text-center font-bold text-slate-300">
+                          {lineNo}
+                        </td>
                       </tr>
+
                       {item.remediation && (
                         <tr className="bg-slate-950/40 border-b border-slate-800">
-                          <td colSpan={4} className="px-4 py-2 text-[11px] text-emerald-400 font-sans">
-                            💡 <span className="font-bold font-mono">AI Fix:</span> {item.remediation}
+                          <td
+                            colSpan={4}
+                            className="px-4 py-2 text-[11px] text-emerald-400 font-sans"
+                          >
+                            💡 <span className="font-bold font-mono">AI Fix:</span>{" "}
+                            {item.remediation}
                           </td>
                         </tr>
                       )}
@@ -146,9 +212,9 @@ export default function ScanResults({ scanResult, fallbackRepoUrl, onDownloadPDF
               </tbody>
             </table>
           </div>
-        ) : hasMetricsIssues ? (
-          <div className="bg-amber-950/20 border border-amber-500/30 rounded-xl p-6 text-center text-xs text-amber-300 font-mono">
-            ⚠️ Issues were flagged in the summary, but detailed line items were not provided in the backend response array.
+        ) : totalReportedCount > 0 ? (
+          <div className="bg-amber-950/30 border border-amber-500/40 rounded-xl p-6 text-center text-xs text-amber-300 font-mono">
+            ⚠️ <strong>{totalReportedCount} issue(s) reported</strong> in metric summary, but array objects could not be parsed.
           </div>
         ) : (
           <div className="bg-[#070A10] border border-slate-800 rounded-xl p-6 text-center text-xs text-slate-400 font-mono">

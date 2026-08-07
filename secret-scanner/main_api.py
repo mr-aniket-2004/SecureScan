@@ -1,7 +1,15 @@
 import uuid
 import os
 import logging
-from fastapi import FastAPI, Depends, HTTPException, status, BackgroundTasks
+from fastapi import (
+    FastAPI, 
+    Depends, 
+    HTTPException, 
+    status, 
+    BackgroundTasks, 
+    WebSocket, 
+    WebSocketDisconnect
+)
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -10,8 +18,6 @@ from src.db.database import get_db, engine, Base, SessionLocal
 from src.db.models import ScanJob
 from src.api.schemas import ScanRequest, ScanJobResponse
 from src.scanner.orchestrator import run_scan_job
-
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from src.api.websocket import ws_manager
 
 # Configure logger for Render visibility
@@ -23,7 +29,6 @@ app = FastAPI(
 )
 
 # 1. CORS CONFIGURATION
-# Exact frontend origins allowed to send credentials and headers
 allowed_origins = [
     "https://secure-scan-plum.vercel.app",  # Production Vercel domain
     "http://localhost:5173",                 # Local Vite development
@@ -49,14 +54,16 @@ def startup_db_client():
         logger.error(f"Database setup error on startup: {e}")
 
 
-# 3. BACKGROUND TASK WORKER
-def process_scan_background(job_id: str):
+# 3. ASYNC BACKGROUND TASK WORKER
+async def process_scan_background(job_id: str):
+    """Executes the async scan orchestrator in the background and manages DB sessions."""
     db = SessionLocal()
     try:
-        run_scan_job(job_id, db)
+        # Await the async orchestrator pipeline
+        await run_scan_job(job_id, db)
     except Exception as e:
         logger.error(f"Background task failed for job {job_id}: {e}")
-        # Mark job as FAILED so frontend stops polling endlessly
+        # Mark job as FAILED so frontend stops waiting endlessly
         job = db.query(ScanJob).filter(ScanJob.id == job_id).first()
         if job:
             job.status = "FAILED"
@@ -70,7 +77,7 @@ def root():
     return {"message": "Security Scanner API is running!"}
 
 
-# 4. ENDPOINTS (DUAL DECORATORS TO PREVENT 307 PREFLIGHT CANCELLATIONS)
+# 4. ENDPOINTS
 
 @app.post("/api/v1/scan", response_model=ScanJobResponse, status_code=status.HTTP_201_CREATED)
 @app.post("/api/v1/scan/", response_model=ScanJobResponse, status_code=status.HTTP_201_CREATED)
@@ -130,12 +137,13 @@ def download_pdf_report(job_id: str, db: Session = Depends(get_db)):
     )
 
 
+# 5. WEBSOCKET REAL-TIME PROGRESS STREAM
 @app.websocket("/ws/scan/{job_id}")
 async def websocket_scan_progress(websocket: WebSocket, job_id: str):
     await ws_manager.connect(job_id, websocket)
     try:
         while True:
-            # Keep connection open and receive ping/heartbeat from client
+            # Keep connection open and listen for client heartbeats
             data = await websocket.receive_text()
     except WebSocketDisconnect:
         ws_manager.disconnect(job_id, websocket)

@@ -11,6 +11,9 @@ from src.db.models import ScanJob
 from src.api.schemas import ScanRequest, ScanJobResponse
 from src.scanner.orchestrator import run_scan_job
 
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from src.api.websocket import ws_manager
+
 # Configure logger for Render visibility
 logger = logging.getLogger("uvicorn.error")
 
@@ -125,3 +128,14 @@ def download_pdf_report(job_id: str, db: Session = Depends(get_db)):
         filename=f"Security_Report_{job_id[:8]}.pdf",
         media_type="application/pdf"
     )
+
+
+@app.websocket("/ws/scan/{job_id}")
+async def websocket_scan_progress(websocket: WebSocket, job_id: str):
+    await ws_manager.connect(job_id, websocket)
+    try:
+        while True:
+            # Keep connection open and receive ping/heartbeat from client
+            data = await websocket.receive_text()
+    except WebSocketDisconnect:
+        ws_manager.disconnect(job_id, websocket)

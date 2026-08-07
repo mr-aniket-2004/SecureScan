@@ -327,8 +327,8 @@ function App() {
                     scanResult.security_score === "A"
                       ? "text-emerald-400"
                       : scanResult.security_score === "C"
-                        ? "text-amber-400"
-                        : "text-red-500"
+                      ? "text-amber-400"
+                      : "text-red-500"
                   }`}
                 >
                   {scanResult.security_score || "A"}
@@ -354,40 +354,91 @@ function App() {
               </div>
             </div>
 
-            {/* Findings List & Remediation */}
-            {scanResult.findings?.length > 0 && (
-              <div className="space-y-3 pt-2">
-                <h3 className="text-sm font-bold text-slate-300">
-                  Detailed Findings Audit
+            {/* DETAILED FINDINGS TABLE (PDF Schema Aligned) */}
+            <div className="space-y-4 pt-4 border-t border-slate-800">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-slate-200 tracking-wide uppercase font-mono">
+                  Detailed Findings
                 </h3>
-                <div className="space-y-3">
-                  {scanResult.findings.map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="bg-[#070A10] p-4 rounded-xl border border-slate-800 space-y-2"
-                    >
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="font-mono text-slate-400">
-                          {item.file_path || item.file}:{item.line_number || item.line || "-"}
-                        </span>
-                        <span className="px-2 py-0.5 rounded bg-red-950/80 text-red-400 border border-red-800/50 font-bold font-mono">
-                          {item.severity}
-                        </span>
-                      </div>
-                      <p className="text-sm font-semibold text-white">
-                        {item.issue_type || item.description || item.message}
-                      </p>
-                      {item.remediation && (
-                        <p className="text-xs text-emerald-400 font-mono bg-slate-900/90 p-3 rounded-lg border border-slate-800">
-                          💡 <span className="font-bold">AI Fix Suggestion:</span>{" "}
-                          {item.remediation}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                <span className="text-xs text-slate-400 font-mono">
+                  Total Issues: {scanResult.findings?.length || 0}
+                </span>
               </div>
-            )}
+
+              {scanResult.findings && scanResult.findings.length > 0 ? (
+                <div className="overflow-x-auto rounded-xl border border-slate-800 bg-[#070A10]">
+                  <table className="w-full text-left border-collapse font-mono text-xs">
+                    <thead>
+                      <tr className="bg-[#0D121F] text-slate-400 border-b border-slate-800">
+                        <th className="py-3 px-4 font-semibold uppercase tracking-wider w-28">
+                          Severity
+                        </th>
+                        <th className="py-3 px-4 font-semibold uppercase tracking-wider">
+                          Type
+                        </th>
+                        <th className="py-3 px-4 font-semibold uppercase tracking-wider">
+                          File Path
+                        </th>
+                        <th className="py-3 px-4 font-semibold uppercase tracking-wider w-20 text-center">
+                          Line
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60 text-slate-300">
+                      {scanResult.findings.map((item, idx) => (
+                        <React.Fragment key={idx}>
+                          <tr className="hover:bg-slate-900/50 transition-colors">
+                            {/* Severity Badge */}
+                            <td className="py-3 px-4">
+                              <span
+                                className={`inline-block px-2.5 py-1 rounded text-[11px] font-bold border ${
+                                  item.severity?.toUpperCase() === "HIGH" ||
+                                  item.severity?.toUpperCase() === "CRITICAL"
+                                    ? "bg-red-950/60 text-red-400 border-red-800/50"
+                                    : item.severity?.toUpperCase() === "MEDIUM"
+                                    ? "bg-amber-950/60 text-amber-400 border-amber-800/50"
+                                    : "bg-blue-950/60 text-blue-400 border-blue-800/50"
+                                }`}
+                              >
+                                {item.severity?.toUpperCase() || "HIGH"}
+                              </span>
+                            </td>
+
+                            {/* Finding Type */}
+                            <td className="py-3 px-4 font-medium text-slate-200">
+                              {item.type || item.issue_type || item.rule_name || "Generic API Key"}
+                            </td>
+
+                            {/* File Path */}
+                            <td className="py-3 px-4 text-slate-400 break-all">
+                              {item.file_path || item.file || ".env"}
+                            </td>
+
+                            {/* Line Number */}
+                            <td className="py-3 px-4 text-center font-bold text-slate-300">
+                              {item.line_number || item.line || item.line_no || "-"}
+                            </td>
+                          </tr>
+
+                          {/* Inline Remediation Sub-row */}
+                          {item.remediation && (
+                            <tr className="bg-slate-950/40 border-b border-slate-800">
+                              <td colSpan={4} className="px-4 py-2 text-[11px] text-emerald-400 font-sans">
+                                💡 <span className="font-bold font-mono">AI Fix:</span> {item.remediation}
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="bg-[#070A10] border border-slate-800 rounded-xl p-6 text-center text-xs text-slate-400 font-mono">
+                  ✅ No security vulnerabilities or leaked secrets detected.
+                </div>
+              )}
+            </div>
           </section>
         )}
       </main>

@@ -1,51 +1,51 @@
-import React, { useState } from 'react';
-import axios from 'axios';
-import TerminalLogs from './components/TerminalLogs';
+import React, { useState } from "react";
+import axios from "axios";
+import TerminalLogs from "./components/TerminalLogs";
 
 function App() {
-  const [repoUrl, setRepoUrl] = useState('');
+  const [repoUrl, setRepoUrl] = useState("");
   const [jobId, setJobId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [scanResult, setScanResult] = useState(null);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
-  const API_BASE_URL = 'https://securescan-9cv9.onrender.com';
+  const API_BASE_URL = "https://securescan-9cv9.onrender.com";
 
   const handleStartScan = async (e) => {
     if (e) e.preventDefault();
     if (!repoUrl) return;
 
     setLoading(true);
-    setError('');
+    setError("");
     setScanResult(null);
     setJobId(null);
 
     try {
       const response = await axios.post(`${API_BASE_URL}/api/v1/scan`, {
-        repo_url: repoUrl
+        repo_url: repoUrl,
       });
 
       // Safely extract ID whether backend returns 'id' or 'job_id'
       const activeJobId = response.data.job_id || response.data.id;
 
       if (!activeJobId) {
-        throw new Error('Backend returned an invalid job ID.');
+        throw new Error("Backend returned an invalid job ID.");
       }
 
       setJobId(activeJobId);
     } catch (err) {
       console.error(err);
       setError(
-        err.response?.data?.detail || 
-        err.message || 
-        'Failed to connect to backend server.'
+        err.response?.data?.detail ||
+          err.message ||
+          "Failed to connect to backend server.",
       );
       setLoading(false);
     }
   };
 
   const handleQuickTest = () => {
-    const testUrl = 'https://github.com/mr-aniket-2004/Journey.git';
+    const testUrl = "https://github.com/mr-aniket-2004/Journey.git";
     setRepoUrl(testUrl);
   };
 
@@ -56,7 +56,7 @@ function App() {
 
   const handleDownloadPDF = () => {
     if (!jobId) return;
-    window.open(`${API_BASE_URL}/api/v1/scan/${jobId}/pdf`, '_blank');
+    window.open(`${API_BASE_URL}/api/v1/scan/${jobId}/pdf`, "_blank");
   };
 
   return (
@@ -66,8 +66,18 @@ function App() {
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="bg-blue-600/20 p-2.5 rounded-xl border border-blue-500/30 text-blue-400">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                />
               </svg>
             </div>
             <div>
@@ -108,9 +118,12 @@ function App() {
                 01
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-white">Provide Repository URL</h3>
+                <h3 className="text-sm font-semibold text-white">
+                  Provide Repository URL
+                </h3>
                 <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                  Paste any public GitHub repository link into the audit input bar.
+                  Paste any public GitHub repository link into the audit input
+                  bar.
                 </p>
               </div>
             </div>
@@ -121,9 +134,12 @@ function App() {
                 02
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-white">Automated Deep Audit</h3>
+                <h3 className="text-sm font-semibold text-white">
+                  Automated Deep Audit
+                </h3>
                 <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                  Our backend clones the repo into memory, executing regex pattern scans for secrets and checking package manifests.
+                  Our backend clones the repo into memory, executing regex
+                  pattern scans for secrets and checking package manifests.
                 </p>
               </div>
             </div>
@@ -134,9 +150,12 @@ function App() {
                 03
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-white">Review & Download Report</h3>
+                <h3 className="text-sm font-semibold text-white">
+                  Review & Download Report
+                </h3>
                 <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                  Inspect live metrics, exact line-by-line threat locations, and download an executive PDF security report.
+                  Inspect live metrics, exact line-by-line threat locations, and
+                  download an executive PDF security report.
                 </p>
               </div>
             </div>
@@ -147,14 +166,16 @@ function App() {
         <section className="bg-[#0D121F] border border-slate-800 rounded-2xl p-6 shadow-xl">
           <div className="flex justify-between items-center mb-2">
             <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <span className="text-blue-400 font-mono">&gt;_</span> Audit Repository
+              <span className="text-blue-400 font-mono">&gt;_</span> Audit
+              Repository
             </h2>
             <span className="text-xs font-mono text-slate-400 bg-slate-800/80 px-2.5 py-1 rounded-md border border-slate-700">
               v1.0.0
             </span>
           </div>
           <p className="text-xs text-slate-400 mb-6">
-            Submit any public Git repository URL to scan for exposed API keys, secret credentials, and vulnerable package dependencies.
+            Submit any public Git repository URL to scan for exposed API keys,
+            secret credentials, and vulnerable package dependencies.
           </p>
 
           <form onSubmit={handleStartScan} className="space-y-4">
@@ -173,14 +194,24 @@ function App() {
                 disabled={loading}
                 className={`px-6 py-3.5 rounded-xl font-semibold text-sm transition flex items-center justify-center gap-2 shadow-lg ${
                   loading
-                    ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
-                    : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/20 active:scale-95'
+                    ? "bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700"
+                    : "bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/20 active:scale-95"
                 }`}
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
                 </svg>
-                {loading ? 'Initializing Audit...' : 'Start Security Scan'}
+                {loading ? "Initializing Audit..." : "Start Security Scan"}
               </button>
             </div>
           </form>
@@ -212,13 +243,26 @@ function App() {
         {!loading && !scanResult && (
           <section className="bg-[#0D121F] border border-slate-800 rounded-2xl p-12 text-center shadow-xl">
             <div className="w-12 h-12 bg-slate-800/80 border border-slate-700 rounded-2xl flex items-center justify-center mx-auto text-slate-500 mb-4">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                />
               </svg>
             </div>
-            <h3 className="text-sm font-bold text-white mb-1">No Scan Active</h3>
+            <h3 className="text-sm font-bold text-white mb-1">
+              No Scan Active
+            </h3>
             <p className="text-xs text-slate-400 max-w-sm mx-auto">
-              Enter a GitHub URL above and click "Start Security Scan" to generate a detailed audit report.
+              Enter a GitHub URL above and click "Start Security Scan" to
+              generate a detailed audit report.
             </p>
           </section>
         )}
@@ -235,16 +279,30 @@ function App() {
           <section className="bg-[#0D121F] border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
             <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 border-b border-slate-800 pb-4">
               <div>
-                <h2 className="text-lg font-bold text-white">Scan Audit Summary</h2>
-                <p className="text-xs font-mono text-slate-400 mt-1">{scanResult.repo_url}</p>
+                <h2 className="text-lg font-bold text-white">
+                  Scan Audit Summary
+                </h2>
+                <p className="text-xs font-mono text-slate-400 mt-1">
+                  {scanResult.repo_url}
+                </p>
               </div>
 
               <button
                 onClick={handleDownloadPDF}
                 className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition flex items-center gap-2 self-start md:self-auto shadow-lg shadow-emerald-600/20"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
                 </svg>
                 Download Executive PDF
               </button>
@@ -256,10 +314,15 @@ function App() {
                 <span className="text-xs text-slate-400 font-medium uppercase tracking-wider block mb-1">
                   Security Grade
                 </span>
-                <span className={`text-4xl font-black ${
-                  scanResult.security_score === 'A' ? 'text-emerald-400' :
-                  scanResult.security_score === 'C' ? 'text-amber-400' : 'text-red-500'
-                }`}>
+                <span
+                  className={`text-4xl font-black ${
+                    scanResult.security_score === "A"
+                      ? "text-emerald-400"
+                      : scanResult.security_score === "C"
+                        ? "text-amber-400"
+                        : "text-red-500"
+                  }`}
+                >
                   {scanResult.security_score}
                 </span>
               </div>
@@ -286,20 +349,31 @@ function App() {
             {/* Findings List & Remediation */}
             {scanResult.findings?.length > 0 && (
               <div className="space-y-3 pt-2">
-                <h3 className="text-sm font-bold text-slate-300">Detailed Findings Audit</h3>
+                <h3 className="text-sm font-bold text-slate-300">
+                  Detailed Findings Audit
+                </h3>
                 <div className="space-y-3">
                   {scanResult.findings.map((item, idx) => (
-                    <div key={idx} className="bg-[#070A10] p-4 rounded-xl border border-slate-800 space-y-2">
+                    <div
+                      key={idx}
+                      className="bg-[#070A10] p-4 rounded-xl border border-slate-800 space-y-2"
+                    >
                       <div className="flex justify-between items-center text-xs">
-                        <span className="font-mono text-slate-400">{item.file_path}:{item.line_number}</span>
+                        <span className="font-mono text-slate-400">
+                          {item.file_path}:{item.line_number}
+                        </span>
                         <span className="px-2 py-0.5 rounded bg-red-950/80 text-red-400 border border-red-800/50 font-bold font-mono">
                           {item.severity}
                         </span>
                       </div>
-                      <p className="text-sm font-semibold text-white">{item.issue_type}</p>
+                      <p className="text-sm font-semibold text-white">
+                        {item.issue_type}
+                      </p>
                       {item.remediation && (
                         <p className="text-xs text-emerald-400 font-mono bg-slate-900/90 p-3 rounded-lg border border-slate-800">
-                          💡 <span className="font-bold">AI Fix Suggestion:</span> {item.remediation}
+                          💡{" "}
+                          <span className="font-bold">AI Fix Suggestion:</span>{" "}
+                          {item.remediation}
                         </p>
                       )}
                     </div>

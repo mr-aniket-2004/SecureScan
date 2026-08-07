@@ -1,5 +1,11 @@
 import React, { useState, useCallback } from "react";
 import axios from "axios";
+
+// Sub-components
+import Header from "./components/Header";
+import PipelineCard from "./components/PipelineCard";
+import ScanForm from "./components/ScanForm";
+import ScanResults from "./components/ScanResults";
 import TerminalLogs from "./components/TerminalLogs";
 
 function App() {
@@ -11,7 +17,6 @@ function App() {
 
   const API_BASE_URL = "https://securescan-9cv9.onrender.com";
 
-  // Helper to reset state cleanly before triggering a new scan
   const resetScanState = () => {
     setError("");
     setScanResult(null);
@@ -30,7 +35,6 @@ function App() {
         repo_url: repoUrl,
       });
 
-      // Safely extract ID whether backend returns 'id' or 'job_id'
       const activeJobId = response.data.job_id || response.data.id;
 
       if (!activeJobId) {
@@ -50,11 +54,9 @@ function App() {
   };
 
   const handleQuickTest = () => {
-    const testUrl = "https://github.com/mr-aniket-2004/Journey.git";
-    setRepoUrl(testUrl);
+    setRepoUrl("https://github.com/mr-aniket-2004/Journey.git");
   };
 
-  // MEMOIZED CALLBACK: Prevents TerminalLogs from reconnecting on App re-renders
   const handleScanComplete = useCallback((finalData) => {
     setScanResult(finalData);
     setLoading(false);
@@ -67,379 +69,49 @@ function App() {
 
   return (
     <div className="min-h-screen bg-[#070A10] text-slate-100 font-sans antialiased pb-12">
-      {/* 1. NAVBAR HEADER */}
-      <header className="border-b border-slate-800/80 bg-[#0B0F17]/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="bg-blue-600/20 p-2.5 rounded-xl border border-blue-500/30 text-blue-400">
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-                />
-              </svg>
-            </div>
-            <div>
-              <h1 className="text-lg font-bold text-white tracking-wide leading-none flex items-center gap-2">
-                SecScan Engine
-              </h1>
-              <p className="text-xs text-slate-400 mt-1">
-                Automated GitHub Security & Dependency Auditor
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-2 bg-emerald-950/40 border border-emerald-500/30 px-3.5 py-1.5 rounded-full">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span className="text-xs font-mono font-medium text-emerald-300">
-              FastAPI + Supabase Active
-            </span>
-          </div>
-        </div>
-      </header>
+      <Header />
 
       <main className="max-w-5xl mx-auto px-6 mt-8 space-y-6">
-        {/* 2. HOW SECSCAN WORKS PIPELINE CARD */}
-        <section className="bg-[#0D121F] border border-slate-800 rounded-2xl p-6 relative overflow-hidden shadow-xl">
-          <div className="flex justify-between items-center mb-6 border-b border-slate-800/80 pb-4">
-            <h2 className="text-xs font-bold font-mono tracking-widest text-slate-400 uppercase">
-              How SecScan Works
-            </h2>
-            <span className="text-xs font-mono text-slate-500 bg-slate-800/50 px-2.5 py-1 rounded-md">
-              3-Step Execution Pipeline
-            </span>
-          </div>
+        <PipelineCard />
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
-            {/* Step 1 */}
-            <div className="flex items-start space-x-4">
-              <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700 text-blue-400 font-mono text-sm font-bold flex-shrink-0">
-                01
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-white">
-                  Provide Repository URL
-                </h3>
-                <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                  Paste any public GitHub repository link into the audit input
-                  bar.
-                </p>
-              </div>
-            </div>
+        <ScanForm
+          repoUrl={repoUrl}
+          setRepoUrl={setRepoUrl}
+          onStartScan={handleStartScan}
+          loading={loading}
+          error={error}
+          onQuickTest={handleQuickTest}
+        />
 
-            {/* Step 2 */}
-            <div className="flex items-start space-x-4">
-              <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700 text-amber-400 font-mono text-sm font-bold flex-shrink-0">
-                02
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-white">
-                  Automated Deep Audit
-                </h3>
-                <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                  Our backend clones the repo into memory, executing regex
-                  pattern scans for secrets and checking package manifests.
-                </p>
-              </div>
-            </div>
-
-            {/* Step 3 */}
-            <div className="flex items-start space-x-4">
-              <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700 text-emerald-400 font-mono text-sm font-bold flex-shrink-0">
-                03
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-white">
-                  Review & Download Report
-                </h3>
-                <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                  Inspect live metrics, exact line-by-line threat locations, and
-                  download an executive PDF security report.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* 3. AUDIT REPOSITORY INPUT CARD */}
-        <section className="bg-[#0D121F] border border-slate-800 rounded-2xl p-6 shadow-xl">
-          <div className="flex justify-between items-center mb-2">
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <span className="text-blue-400 font-mono">&gt;_</span> Audit
-              Repository
-            </h2>
-            <span className="text-xs font-mono text-slate-400 bg-slate-800/80 px-2.5 py-1 rounded-md border border-slate-700">
-              v1.0.0
-            </span>
-          </div>
-          <p className="text-xs text-slate-400 mb-6">
-            Submit any public Git repository URL to scan for exposed API keys,
-            secret credentials, and vulnerable package dependencies.
-          </p>
-
-          <form onSubmit={handleStartScan} className="space-y-4">
-            <div className="flex flex-col md:flex-row gap-3">
-              <input
-                type="url"
-                placeholder="https://github.com/username/repository.git"
-                value={repoUrl}
-                onChange={(e) => setRepoUrl(e.target.value)}
-                required
-                disabled={loading}
-                className="flex-1 bg-[#070A10] border border-slate-800 rounded-xl px-4 py-3.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition font-mono"
-              />
-              <button
-                type="submit"
-                disabled={loading}
-                className={`px-6 py-3.5 rounded-xl font-semibold text-sm transition flex items-center justify-center gap-2 shadow-lg ${
-                  loading
-                    ? "bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700"
-                    : "bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/20 active:scale-95"
-                }`}
-              >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-                {loading ? "Initializing Audit..." : "Start Security Scan"}
-              </button>
-            </div>
-          </form>
-
-          {/* Quick Test Option */}
-          <div className="mt-4 flex items-center space-x-2 text-xs">
-            <span className="text-amber-400 flex items-center gap-1 font-medium">
-              ✨ Quick Test:
-            </span>
-            <button
-              onClick={handleQuickTest}
-              type="button"
-              disabled={loading}
-              className="font-mono bg-slate-800/80 hover:bg-slate-800 text-slate-300 px-2.5 py-1 rounded-md border border-slate-700 hover:border-slate-600 transition"
-            >
-              mr-aniket-2004/Journey.git
-            </button>
-          </div>
-
-          {error && (
-            <div className="mt-4 p-4 bg-red-950/40 border border-red-500/40 rounded-xl text-red-300 text-xs flex items-center space-x-2">
-              <span>⚠️</span>
-              <span>{error}</span>
-            </div>
-          )}
-        </section>
-
-        {/* 4. DYNAMIC CONTENT AREA */}
-
-        {/* EMPTY STATE: Only visible when no scan has been initialized */}
+        {/* Empty State */}
         {!jobId && !loading && !scanResult && (
           <section className="bg-[#0D121F] border border-slate-800 rounded-2xl p-12 text-center shadow-xl">
             <div className="w-12 h-12 bg-slate-800/80 border border-slate-700 rounded-2xl flex items-center justify-center mx-auto text-slate-500 mb-4">
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-                />
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
             </div>
-            <h3 className="text-sm font-bold text-white mb-1">
-              No Scan Active
-            </h3>
+            <h3 className="text-sm font-bold text-white mb-1">No Scan Active</h3>
             <p className="text-xs text-slate-400 max-w-sm mx-auto">
-              Enter a GitHub URL above and click "Start Security Scan" to
-              generate a detailed audit report.
+              Enter a GitHub URL above and click "Start Security Scan" to generate a detailed audit report.
             </p>
           </section>
         )}
 
-        {/* TERMINAL STREAM: Stays mounted as long as jobId exists */}
+        {/* Terminal Logs Component */}
         {jobId && (
           <div className="w-full flex justify-center">
             <TerminalLogs jobId={jobId} onComplete={handleScanComplete} />
           </div>
         )}
 
-        {/* AUDIT RESULTS DASHBOARD: Renders right below terminal when completed */}
+        {/* Scan Results Component */}
         {scanResult && (
-          <section className="bg-[#0D121F] border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6 animate-fade-in">
-            <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 border-b border-slate-800 pb-4">
-              <div>
-                <h2 className="text-lg font-bold text-white">
-                  Scan Audit Summary
-                </h2>
-                <p className="text-xs font-mono text-slate-400 mt-1">
-                  {scanResult.repo_url || repoUrl}
-                </p>
-              </div>
-
-              <button
-                onClick={handleDownloadPDF}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition flex items-center gap-2 self-start md:self-auto shadow-lg shadow-emerald-600/20"
-              >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  />
-                </svg>
-                Download Executive PDF
-              </button>
-            </div>
-
-            {/* Metric Score Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-[#070A10] p-4 rounded-xl border border-slate-800 text-center">
-                <span className="text-xs text-slate-400 font-medium uppercase tracking-wider block mb-1">
-                  Security Grade
-                </span>
-                <span
-                  className={`text-4xl font-black ${
-                    scanResult.security_score === "A"
-                      ? "text-emerald-400"
-                      : scanResult.security_score === "C"
-                      ? "text-amber-400"
-                      : "text-red-500"
-                  }`}
-                >
-                  {scanResult.security_score || "A"}
-                </span>
-              </div>
-
-              <div className="bg-[#070A10] p-4 rounded-xl border border-slate-800 text-center">
-                <span className="text-xs text-slate-400 font-medium uppercase tracking-wider block mb-1">
-                  Secrets Leaked
-                </span>
-                <span className="text-4xl font-black text-red-400">
-                  {scanResult.secrets_found ?? 0}
-                </span>
-              </div>
-
-              <div className="bg-[#070A10] p-4 rounded-xl border border-slate-800 text-center">
-                <span className="text-xs text-slate-400 font-medium uppercase tracking-wider block mb-1">
-                  Vulnerabilities
-                </span>
-                <span className="text-4xl font-black text-amber-400">
-                  {scanResult.vulnerabilities_found ?? 0}
-                </span>
-              </div>
-            </div>
-
-            {/* DETAILED FINDINGS TABLE (PDF Schema Aligned) */}
-            <div className="space-y-4 pt-4 border-t border-slate-800">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-slate-200 tracking-wide uppercase font-mono">
-                  Detailed Findings
-                </h3>
-                <span className="text-xs text-slate-400 font-mono">
-                  Total Issues: {scanResult.findings?.length || 0}
-                </span>
-              </div>
-
-              {scanResult.findings && scanResult.findings.length > 0 ? (
-                <div className="overflow-x-auto rounded-xl border border-slate-800 bg-[#070A10]">
-                  <table className="w-full text-left border-collapse font-mono text-xs">
-                    <thead>
-                      <tr className="bg-[#0D121F] text-slate-400 border-b border-slate-800">
-                        <th className="py-3 px-4 font-semibold uppercase tracking-wider w-28">
-                          Severity
-                        </th>
-                        <th className="py-3 px-4 font-semibold uppercase tracking-wider">
-                          Type
-                        </th>
-                        <th className="py-3 px-4 font-semibold uppercase tracking-wider">
-                          File Path
-                        </th>
-                        <th className="py-3 px-4 font-semibold uppercase tracking-wider w-20 text-center">
-                          Line
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-800/60 text-slate-300">
-                      {scanResult.findings.map((item, idx) => (
-                        <React.Fragment key={idx}>
-                          <tr className="hover:bg-slate-900/50 transition-colors">
-                            {/* Severity Badge */}
-                            <td className="py-3 px-4">
-                              <span
-                                className={`inline-block px-2.5 py-1 rounded text-[11px] font-bold border ${
-                                  item.severity?.toUpperCase() === "HIGH" ||
-                                  item.severity?.toUpperCase() === "CRITICAL"
-                                    ? "bg-red-950/60 text-red-400 border-red-800/50"
-                                    : item.severity?.toUpperCase() === "MEDIUM"
-                                    ? "bg-amber-950/60 text-amber-400 border-amber-800/50"
-                                    : "bg-blue-950/60 text-blue-400 border-blue-800/50"
-                                }`}
-                              >
-                                {item.severity?.toUpperCase() || "HIGH"}
-                              </span>
-                            </td>
-
-                            {/* Finding Type */}
-                            <td className="py-3 px-4 font-medium text-slate-200">
-                              {item.type || item.issue_type || item.rule_name || "Generic API Key"}
-                            </td>
-
-                            {/* File Path */}
-                            <td className="py-3 px-4 text-slate-400 break-all">
-                              {item.file_path || item.file || ".env"}
-                            </td>
-
-                            {/* Line Number */}
-                            <td className="py-3 px-4 text-center font-bold text-slate-300">
-                              {item.line_number || item.line || item.line_no || "-"}
-                            </td>
-                          </tr>
-
-                          {/* Inline Remediation Sub-row */}
-                          {item.remediation && (
-                            <tr className="bg-slate-950/40 border-b border-slate-800">
-                              <td colSpan={4} className="px-4 py-2 text-[11px] text-emerald-400 font-sans">
-                                💡 <span className="font-bold font-mono">AI Fix:</span> {item.remediation}
-                              </td>
-                            </tr>
-                          )}
-                        </React.Fragment>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="bg-[#070A10] border border-slate-800 rounded-xl p-6 text-center text-xs text-slate-400 font-mono">
-                  ✅ No security vulnerabilities or leaked secrets detected.
-                </div>
-              )}
-            </div>
-          </section>
+          <ScanResults
+            scanResult={scanResult}
+            fallbackRepoUrl={repoUrl}
+            onDownloadPDF={handleDownloadPDF}
+          />
         )}
       </main>
     </div>

@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'https://securescan-hg2e.onrender.com/';
+const API_BASE_URL = 'https://securescan-hg2e.onrender.com';
 
 export const triggerScan = async (repoUrl) => {
   const response = await axios.post(`${API_BASE_URL}/scan`, { repo_url: repoUrl });

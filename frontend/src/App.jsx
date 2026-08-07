@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import axios from "axios";
 import TerminalLogs from "./components/TerminalLogs";
 
@@ -11,14 +11,19 @@ function App() {
 
   const API_BASE_URL = "https://securescan-9cv9.onrender.com";
 
+  // Helper to reset state cleanly before triggering a new scan
+  const resetScanState = () => {
+    setError("");
+    setScanResult(null);
+    setJobId(null);
+  };
+
   const handleStartScan = async (e) => {
     if (e) e.preventDefault();
     if (!repoUrl) return;
 
     setLoading(true);
-    setError("");
-    setScanResult(null);
-    setJobId(null);
+    resetScanState();
 
     try {
       const response = await axios.post(`${API_BASE_URL}/api/v1/scan`, {
@@ -34,7 +39,7 @@ function App() {
 
       setJobId(activeJobId);
     } catch (err) {
-      console.error(err);
+      console.error("[SCAN_INIT_ERROR]", err);
       setError(
         err.response?.data?.detail ||
           err.message ||
@@ -49,10 +54,11 @@ function App() {
     setRepoUrl(testUrl);
   };
 
-  const handleScanComplete = (finalData) => {
+  // MEMOIZED CALLBACK: Prevents TerminalLogs from reconnecting on App re-renders
+  const handleScanComplete = useCallback((finalData) => {
     setScanResult(finalData);
     setLoading(false);
-  };
+  }, []);
 
   const handleDownloadPDF = () => {
     if (!jobId) return;
@@ -240,7 +246,7 @@ function App() {
         </section>
 
         {/* 4. DYNAMIC CONTENT AREA */}
-        
+
         {/* EMPTY STATE: Only visible when no scan has been initialized */}
         {!jobId && !loading && !scanResult && (
           <section className="bg-[#0D121F] border border-slate-800 rounded-2xl p-12 text-center shadow-xl">

@@ -1,12 +1,15 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from "react";
 
 const TerminalLogs = ({ jobId, onComplete }) => {
   const [logs, setLogs] = useState([]);
   const [progress, setProgress] = useState(0);
-  const [currentStep, setCurrentStep] = useState('CLONING');
+  const [currentStep, setCurrentStep] = useState("CLONING");
   const terminalEndRef = useRef(null);
-
-  // 1. Preserve onComplete reference without causing useEffect to re-trigger
+  
+  // Ref to track if scan has already completed so we ignore duplicate events
+  const isCompletedRef = useRef(false);
+  
+  // Stable ref for onComplete callback to avoid re-triggering useEffect
   const onCompleteRef = useRef(onComplete);
   useEffect(() => {
     onCompleteRef.current = onComplete;
@@ -15,48 +18,63 @@ const TerminalLogs = ({ jobId, onComplete }) => {
   useEffect(() => {
     if (!jobId) return;
 
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    // Reset flags on new job
+    isCompletedRef.current = false;
+
+    const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const wsUrl = `${wsProtocol}//securescan-9cv9.onrender.com/ws/scan/${jobId}`;
     const socket = new WebSocket(wsUrl);
+
+    socket.onopen = () => {
+      console.log(`[WS] Connected for Job: ${jobId}`);
+    };
 
     socket.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
 
+        // Append log to stream
         setLogs((prev) => [...prev, data]);
         if (data.progress !== undefined) setProgress(data.progress);
         if (data.step) setCurrentStep(data.step);
 
-        // WHEN COMPLETED: Trigger callback and CLOSE the socket immediately
-        if (data.step === 'COMPLETED' || data.status === 'COMPLETED') {
+        // Handle scan completion cleanly
+        if ((data.step === "COMPLETED" || data.status === "COMPLETED") && !isCompletedRef.current) {
+          isCompletedRef.current = true;
           setProgress(100);
-          setCurrentStep('COMPLETED');
-          
+          setCurrentStep("COMPLETED");
+
           if (onCompleteRef.current) {
             onCompleteRef.current(data.data || data);
           }
 
-          // 2. Explicitly disconnect so the stream stops listening
-          socket.close();
+          // Gracefully close client side
+          socket.close(1000, "Scan finished");
         }
       } catch (err) {
-        console.error("Error parsing WebSocket message:", err);
+        console.error("[WS] Error parsing JSON payload:", err);
       }
     };
 
-    socket.onclose = () => {
-      console.log('WebSocket connection closed.');
+    socket.onerror = (error) => {
+      console.error("[WS] Socket error encountered:", error);
     };
 
+    socket.onclose = (event) => {
+      console.log(`[WS] Connection closed (Code: ${event.code})`);
+    };
+
+    // Cleanup: disconnect socket when component unmounts or jobId changes
     return () => {
       if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
         socket.close();
       }
     };
-  }, [jobId]); // Depend ONLY on jobId to prevent reconnection loops
+  }, [jobId]); // DEPEND STRICTLY ON jobId ONLY
 
+  // Auto-scroll terminal output
   useEffect(() => {
-    terminalEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    terminalEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [logs]);
 
   return (
@@ -64,7 +82,7 @@ const TerminalLogs = ({ jobId, onComplete }) => {
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 pb-3 border-b border-gray-800/80 gap-2">
         <div className="flex items-center space-x-2">
-          <span className={`w-2.5 h-2.5 rounded-full ${progress === 100 ? 'bg-emerald-500' : 'bg-blue-500 animate-ping'}`}></span>
+          <span className={`w-2.5 h-2.5 rounded-full ${progress === 100 ? "bg-emerald-500" : "bg-blue-500 animate-ping"}`}></span>
           <span className="text-xs font-bold tracking-wider text-white uppercase">
             Live Audit Stream
           </span>
@@ -72,8 +90,8 @@ const TerminalLogs = ({ jobId, onComplete }) => {
         <div className="flex items-center space-x-3 text-xs">
           <span className={`px-3 py-1 rounded-full font-bold uppercase border ${
             progress === 100 
-              ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-400' 
-              : 'bg-blue-950/60 border-blue-500/40 text-blue-400'
+              ? "bg-emerald-950/60 border-emerald-500/40 text-emerald-400" 
+              : "bg-blue-950/60 border-blue-500/40 text-blue-400"
           }`}>
             STAGE: {currentStep}
           </span>
@@ -91,37 +109,6 @@ const TerminalLogs = ({ jobId, onComplete }) => {
         </div>
       </div>
 
-      {/* Stage Tracker */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-6 text-xs">
-        <div className={`p-2.5 rounded-xl border text-center transition-all ${
-          progress >= 25 ? 'bg-blue-950/40 border-blue-500/40 text-blue-300' : 'bg-gray-900/40 border-gray-800 text-gray-600'
-        }`}>
-          <div className="font-bold">1. Copy Git Repo</div>
-          <div className="text-[10px] opacity-70">Git Clone</div>
-        </div>
-
-        <div className={`p-2.5 rounded-xl border text-center transition-all ${
-          progress >= 50 ? 'bg-amber-950/40 border-amber-500/40 text-amber-300' : 'bg-gray-900/40 border-gray-800 text-gray-600'
-        }`}>
-          <div className="font-bold">2. Start Scanning</div>
-          <div className="text-[10px] opacity-70">Secret Regex</div>
-        </div>
-
-        <div className={`p-2.5 rounded-xl border text-center transition-all ${
-          progress >= 75 ? 'bg-purple-950/40 border-purple-500/40 text-purple-300' : 'bg-gray-900/40 border-gray-800 text-gray-600'
-        }`}>
-          <div className="font-bold">3. Identify Threats</div>
-          <div className="text-[10px] opacity-70">CVE Check</div>
-        </div>
-
-        <div className={`p-2.5 rounded-xl border text-center transition-all ${
-          progress >= 100 ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300' : 'bg-gray-900/40 border-gray-800 text-gray-600'
-        }`}>
-          <div className="font-bold">4. Complete</div>
-          <div className="text-[10px] opacity-70">Summary Table</div>
-        </div>
-      </div>
-
       {/* Terminal View Output */}
       <div className="h-56 overflow-y-auto space-y-2 text-xs bg-[#05070C] p-4 rounded-xl border border-gray-800/80 pr-2">
         {logs.length === 0 ? (
@@ -130,13 +117,13 @@ const TerminalLogs = ({ jobId, onComplete }) => {
           logs.map((log, index) => (
             <div key={index} className="flex items-start space-x-2 font-mono">
               <span className="text-blue-400 select-none">&gt;</span>
-              <span className="text-gray-500">[{log.step || 'INFO'}]</span>
+              <span className="text-gray-500">[{log.step || "INFO"}]</span>
               <span className={
-                log.status === 'FAILED' 
-                  ? 'text-red-500 font-bold' 
-                  : log.step === 'COMPLETED' 
-                  ? 'text-emerald-400 font-semibold' 
-                  : 'text-green-300'
+                log.status === "FAILED" 
+                  ? "text-red-500 font-bold" 
+                  : log.step === "COMPLETED" 
+                  ? "text-emerald-400 font-semibold" 
+                  : "text-green-300"
               }>
                 {log.message}
               </span>

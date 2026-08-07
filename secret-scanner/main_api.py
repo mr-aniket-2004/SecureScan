@@ -77,7 +77,7 @@ def root():
     return {"message": "Security Scanner API is running!"}
 
 
-# 4. ENDPOINTS
+# 4. REST ENDPOINTS
 
 @app.post("/api/v1/scan", response_model=ScanJobResponse, status_code=status.HTTP_201_CREATED)
 @app.post("/api/v1/scan/", response_model=ScanJobResponse, status_code=status.HTTP_201_CREATED)
@@ -142,41 +142,53 @@ def download_pdf_report(job_id: str, db: Session = Depends(get_db)):
 async def websocket_scan_progress(websocket: WebSocket, job_id: str):
     await ws_manager.connect(job_id, websocket)
     
-    # Resolve Race Condition: Sync initial state from DB upon client connection
-    db = SessionLocal()
     try:
-        job = db.query(ScanJob).filter(ScanJob.id == job_id).first()
-        if job and job.status == "COMPLETED":
-            # If the background job already completed, immediately inform the frontend
-            await websocket.send_json({
-                "step": "COMPLETED",
-                "message": "Scan execution completed successfully!",
-                "progress": 100,
-                "status": "COMPLETED",
-                "data": {
-                    "id": job.id,
-                    "repo_url": job.repo_url,
-                    "status": job.status,
-                    "secrets_found": job.secrets_found,
-                    "vulnerabilities_found": job.vulnerabilities_found,
-                    "security_score": job.security_score
-                }
-            })
-        elif job and job.status == "FAILED":
-            await websocket.send_json({
-                "step": "ERROR",
-                "message": "Scan failed during execution.",
-                "progress": 100,
-                "status": "FAILED"
-            })
-    except Exception as e:
-        logger.error(f"Error fetching initial WS state for job {job_id}: {e}")
-    finally:
-        db.close()
+        # Step A: Sync initial state from DB upon client connection
+        db = SessionLocal()
+        is_finished = False
+        try:
+            job = db.query(ScanJob).filter(ScanJob.id == job_id).first()
+            if job and job.status == "COMPLETED":
+                await websocket.send_json({
+                    "step": "COMPLETED",
+                    "message": "Scan execution completed successfully!",
+                    "progress": 100,
+                    "status": "COMPLETED",
+                    "data": {
+                        "id": job.id,
+                        "repo_url": job.repo_url,
+                        "status": job.status,
+                        "secrets_found": job.secrets_found,
+                        "vulnerabilities_found": job.vulnerabilities_found,
+                        "security_score": job.security_score
+                    }
+                })
+                is_finished = True
+            elif job and job.status == "FAILED":
+                await websocket.send_json({
+                    "step": "ERROR",
+                    "message": "Scan failed during execution.",
+                    "progress": 100,
+                    "status": "FAILED"
+                })
+                is_finished = True
+        except Exception as e:
+            logger.error(f"Error fetching initial WS state for job {job_id}: {e}")
+        finally:
+            db.close()
 
-    try:
+        # Step B: If job was already finished, terminate WS session cleanly
+        if is_finished:
+            return
+
+        # Step C: Keep connection active for active scan streaming
         while True:
-            # Keep connection open and listen for client heartbeats
-            data = await websocket.receive_text()
+            await websocket.receive_text()
+
     except WebSocketDisconnect:
+        logger.info(f"[WS] Client disconnected cleanly for job: {job_id}")
+    except Exception as e:
+        logger.error(f"[WS] Unexpected socket error for job {job_id}: {e}")
+    finally:
+        # ALWAYS disconnect from manager regardless of how execution exits
         ws_manager.disconnect(job_id, websocket)

@@ -18,7 +18,7 @@ from src.db.database import get_db, engine, Base, SessionLocal
 from src.db.models import ScanJob
 from src.api.schemas import ScanRequest, ScanJobResponse
 from src.scanner.orchestrator import run_scan_job
-from src.api.websocket import ws_manager
+
 
 # Configure logger for Render visibility
 logger = logging.getLogger("uvicorn.error")
@@ -137,9 +137,7 @@ def download_pdf_report(job_id: str, db: Session = Depends(get_db)):
     )
 
 
-# 5. WEBSOCKET REAL-TIME PROGRESS STREAM
-@app.websocket("/ws/scan/{job_id}")
-async def websocket_scan_progress(websocket: WebSocket, job_id: str):
+
     await ws_manager.connect(job_id, websocket)
     
     try:

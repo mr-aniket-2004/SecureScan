@@ -9,7 +9,6 @@ const TerminalLogs = ({ jobId, onComplete }) => {
   useEffect(() => {
     if (!jobId) return;
 
-    // Convert HTTP render URL to WS protocol (https -> wss / http -> ws)
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${wsProtocol}//securescan-9cv9.onrender.com/ws/scan/${jobId}`;
 
@@ -19,20 +18,18 @@ const TerminalLogs = ({ jobId, onComplete }) => {
       try {
         const data = JSON.parse(event.data);
 
-        // Update state
         setLogs((prev) => [...prev, data]);
         if (data.progress !== undefined) setProgress(data.progress);
         if (data.step) setCurrentStep(data.step);
 
-        // STAGE 4 COMPLETION TRIGGER:
-        // When backend sends COMPLETED, notify App.jsx to render Summary Table
+        // WHEN COMPLETED: Trigger onComplete to render summary section BELOW terminal
         if (data.step === 'COMPLETED' || data.status === 'COMPLETED') {
-          setTimeout(() => {
-            socket.close();
-            if (onComplete) {
-              onComplete(data.data || data); // Swaps Terminal View -> Summary View
-            }
-          }, 1200); // Brief delay so user sees 100% stage complete
+          setProgress(100);
+          setCurrentStep('COMPLETED');
+          
+          if (onComplete) {
+            onComplete(data.data || data);
+          }
         }
       } catch (err) {
         console.error("Error parsing WebSocket message:", err);
@@ -50,30 +47,33 @@ const TerminalLogs = ({ jobId, onComplete }) => {
     };
   }, [jobId, onComplete]);
 
-  // Auto-scroll to bottom of logs terminal
   useEffect(() => {
     terminalEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [logs]);
 
   return (
     <div className="bg-[#0B0F17] text-green-400 font-mono p-6 rounded-2xl border border-gray-800 shadow-2xl w-full max-w-4xl my-6">
-      {/* 1. Header & Stage Status */}
+      {/* Stage Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 pb-3 border-b border-gray-800/80 gap-2">
         <div className="flex items-center space-x-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-ping"></span>
+          <span className={`w-2.5 h-2.5 rounded-full ${progress === 100 ? 'bg-emerald-500' : 'bg-blue-500 animate-ping'}`}></span>
           <span className="text-xs font-bold tracking-wider text-white uppercase">
             Live Audit Stream
           </span>
         </div>
         <div className="flex items-center space-x-3 text-xs">
-          <span className="bg-blue-950/60 border border-blue-500/40 text-blue-400 px-3 py-1 rounded-full font-bold uppercase">
+          <span className={`px-3 py-1 rounded-full font-bold uppercase border ${
+            progress === 100 
+              ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-400' 
+              : 'bg-blue-950/60 border-blue-500/40 text-blue-400'
+          }`}>
             STAGE: {currentStep}
           </span>
           <span className="text-gray-300 font-bold">{progress}%</span>
         </div>
       </div>
 
-      {/* 2. Scanning Progress Bar */}
+      {/* Progress Bar */}
       <div className="mb-6">
         <div className="w-full bg-gray-900 h-2.5 rounded-full overflow-hidden border border-gray-800">
           <div 
@@ -83,7 +83,7 @@ const TerminalLogs = ({ jobId, onComplete }) => {
         </div>
       </div>
 
-      {/* 3. 4-Stage Pipeline Progress Tracker */}
+      {/* 4-Stage Pipeline Progress Tracker */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-6 text-xs">
         <div className={`p-2.5 rounded-xl border text-center transition-all ${
           progress >= 25 ? 'bg-blue-950/40 border-blue-500/40 text-blue-300' : 'bg-gray-900/40 border-gray-800 text-gray-600'
@@ -114,7 +114,7 @@ const TerminalLogs = ({ jobId, onComplete }) => {
         </div>
       </div>
 
-      {/* 4. Terminal Logs Output */}
+      {/* Terminal Output */}
       <div className="h-56 overflow-y-auto space-y-2 text-xs bg-[#05070C] p-4 rounded-xl border border-gray-800/80 pr-2">
         {logs.length === 0 ? (
           <p className="text-gray-600 animate-pulse">&gt; Waiting for stream initialization...</p>

@@ -38,7 +38,7 @@ function App() {
       setError(
         err.response?.data?.detail ||
           err.message ||
-          "Failed to connect to backend server.",
+          "Failed to connect to backend server."
       );
       setLoading(false);
     }
@@ -239,8 +239,10 @@ function App() {
           )}
         </section>
 
-        {/* 4. DYNAMIC CONTENT AREA (EMPTY STATE / TERMINAL STREAM / RESULTS) */}
-        {!loading && !scanResult && (
+        {/* 4. DYNAMIC CONTENT AREA */}
+        
+        {/* EMPTY STATE: Only visible when no scan has been initialized */}
+        {!jobId && !loading && !scanResult && (
           <section className="bg-[#0D121F] border border-slate-800 rounded-2xl p-12 text-center shadow-xl">
             <div className="w-12 h-12 bg-slate-800/80 border border-slate-700 rounded-2xl flex items-center justify-center mx-auto text-slate-500 mb-4">
               <svg
@@ -267,23 +269,23 @@ function App() {
           </section>
         )}
 
-        {/* WebSocket Real-Time Terminal View */}
-        {jobId && loading && (
+        {/* TERMINAL STREAM: Stays mounted as long as jobId exists */}
+        {jobId && (
           <div className="w-full flex justify-center">
             <TerminalLogs jobId={jobId} onComplete={handleScanComplete} />
           </div>
         )}
 
-        {/* Audit Results Dashboard */}
+        {/* AUDIT RESULTS DASHBOARD: Renders right below terminal when completed */}
         {scanResult && (
-          <section className="bg-[#0D121F] border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+          <section className="bg-[#0D121F] border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6 animate-fade-in">
             <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 border-b border-slate-800 pb-4">
               <div>
                 <h2 className="text-lg font-bold text-white">
                   Scan Audit Summary
                 </h2>
                 <p className="text-xs font-mono text-slate-400 mt-1">
-                  {scanResult.repo_url}
+                  {scanResult.repo_url || repoUrl}
                 </p>
               </div>
 
@@ -323,7 +325,7 @@ function App() {
                         : "text-red-500"
                   }`}
                 >
-                  {scanResult.security_score}
+                  {scanResult.security_score || "A"}
                 </span>
               </div>
 
@@ -332,7 +334,7 @@ function App() {
                   Secrets Leaked
                 </span>
                 <span className="text-4xl font-black text-red-400">
-                  {scanResult.secrets_found}
+                  {scanResult.secrets_found ?? 0}
                 </span>
               </div>
 
@@ -341,7 +343,7 @@ function App() {
                   Vulnerabilities
                 </span>
                 <span className="text-4xl font-black text-amber-400">
-                  {scanResult.vulnerabilities_found}
+                  {scanResult.vulnerabilities_found ?? 0}
                 </span>
               </div>
             </div>
@@ -360,19 +362,18 @@ function App() {
                     >
                       <div className="flex justify-between items-center text-xs">
                         <span className="font-mono text-slate-400">
-                          {item.file_path}:{item.line_number}
+                          {item.file_path || item.file}:{item.line_number || item.line || "-"}
                         </span>
                         <span className="px-2 py-0.5 rounded bg-red-950/80 text-red-400 border border-red-800/50 font-bold font-mono">
                           {item.severity}
                         </span>
                       </div>
                       <p className="text-sm font-semibold text-white">
-                        {item.issue_type}
+                        {item.issue_type || item.description || item.message}
                       </p>
                       {item.remediation && (
                         <p className="text-xs text-emerald-400 font-mono bg-slate-900/90 p-3 rounded-lg border border-slate-800">
-                          💡{" "}
-                          <span className="font-bold">AI Fix Suggestion:</span>{" "}
+                          💡 <span className="font-bold">AI Fix Suggestion:</span>{" "}
                           {item.remediation}
                         </p>
                       )}

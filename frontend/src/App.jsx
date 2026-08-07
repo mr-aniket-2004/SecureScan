@@ -24,6 +24,7 @@ function App() {
   };
 
   const handleStartScan = async (e) => {
+  
     if (e) e.preventDefault();
     if (!repoUrl) return;
 
@@ -58,6 +59,7 @@ function App() {
   };
 
   const handleScanComplete = useCallback((finalData) => {
+    console.log("=== BACKEND SCAN RESULT PAYLOAD ===", finalData);
     setScanResult(finalData);
     setLoading(false);
   }, []);

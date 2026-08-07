@@ -1,7 +1,6 @@
 import axios from 'axios';
 
-
-const API_BASE_URL = 'https://securescan-9cv9.onrender.com/api/v1';
+const API_BASE_URL = 'http://localhost:8000/api/v1';
 
 export const triggerScan = async (repoUrl) => {
   const response = await axios.post(`${API_BASE_URL}/scan`, { repo_url: repoUrl });

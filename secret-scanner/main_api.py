@@ -20,6 +20,8 @@ from src.api.schemas import ScanRequest, ScanJobResponse
 from src.scanner.orchestrator import run_scan_job
 
 
+
+
 # Configure logger for Render visibility
 logger = logging.getLogger("uvicorn.error")
 
@@ -28,20 +30,23 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# 1. CORS CONFIGURATION
-allowed_origins = [
-    "https://secure-scan-plum.vercel.app",  # Production Vercel domain
-    "http://localhost:5173",                 # Local Vite development
-    "http://localhost:3000"
+# 1. Define allowed origins
+origins = [
+    "https://secure-scan-beta.vercel.app",  # Production frontend
+    "http://localhost:5173",               # Local Vite server
+    "http://localhost:3000",               # Local React server
 ]
 
+# 2. Add CORS middleware (MUST be added before routes)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
+    allow_origins=origins,
+    allow_origin_regex=r"https://secure-scan-.*\.vercel\.app",  # Allows Vercel preview deployments
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 
 # 2. SAFE DB INITIALIZATION

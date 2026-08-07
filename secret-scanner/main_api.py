@@ -141,6 +141,39 @@ def download_pdf_report(job_id: str, db: Session = Depends(get_db)):
 @app.websocket("/ws/scan/{job_id}")
 async def websocket_scan_progress(websocket: WebSocket, job_id: str):
     await ws_manager.connect(job_id, websocket)
+    
+    # Resolve Race Condition: Sync initial state from DB upon client connection
+    db = SessionLocal()
+    try:
+        job = db.query(ScanJob).filter(ScanJob.id == job_id).first()
+        if job and job.status == "COMPLETED":
+            # If the background job already completed, immediately inform the frontend
+            await websocket.send_json({
+                "step": "COMPLETED",
+                "message": "Scan execution completed successfully!",
+                "progress": 100,
+                "status": "COMPLETED",
+                "data": {
+                    "id": job.id,
+                    "repo_url": job.repo_url,
+                    "status": job.status,
+                    "secrets_found": job.secrets_found,
+                    "vulnerabilities_found": job.vulnerabilities_found,
+                    "security_score": job.security_score
+                }
+            })
+        elif job and job.status == "FAILED":
+            await websocket.send_json({
+                "step": "ERROR",
+                "message": "Scan failed during execution.",
+                "progress": 100,
+                "status": "FAILED"
+            })
+    except Exception as e:
+        logger.error(f"Error fetching initial WS state for job {job_id}: {e}")
+    finally:
+        db.close()
+
     try:
         while True:
             # Keep connection open and listen for client heartbeats

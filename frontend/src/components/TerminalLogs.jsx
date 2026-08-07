@@ -6,12 +6,17 @@ const TerminalLogs = ({ jobId, onComplete }) => {
   const [currentStep, setCurrentStep] = useState('CLONING');
   const terminalEndRef = useRef(null);
 
+  // 1. Preserve onComplete reference without causing useEffect to re-trigger
+  const onCompleteRef = useRef(onComplete);
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
+
   useEffect(() => {
     if (!jobId) return;
 
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${wsProtocol}//securescan-9cv9.onrender.com/ws/scan/${jobId}`;
-
     const socket = new WebSocket(wsUrl);
 
     socket.onmessage = (event) => {
@@ -22,14 +27,17 @@ const TerminalLogs = ({ jobId, onComplete }) => {
         if (data.progress !== undefined) setProgress(data.progress);
         if (data.step) setCurrentStep(data.step);
 
-        // WHEN COMPLETED: Trigger onComplete to render summary section BELOW terminal
+        // WHEN COMPLETED: Trigger callback and CLOSE the socket immediately
         if (data.step === 'COMPLETED' || data.status === 'COMPLETED') {
           setProgress(100);
           setCurrentStep('COMPLETED');
           
-          if (onComplete) {
-            onComplete(data.data || data);
+          if (onCompleteRef.current) {
+            onCompleteRef.current(data.data || data);
           }
+
+          // 2. Explicitly disconnect so the stream stops listening
+          socket.close();
         }
       } catch (err) {
         console.error("Error parsing WebSocket message:", err);
@@ -45,7 +53,7 @@ const TerminalLogs = ({ jobId, onComplete }) => {
         socket.close();
       }
     };
-  }, [jobId, onComplete]);
+  }, [jobId]); // Depend ONLY on jobId to prevent reconnection loops
 
   useEffect(() => {
     terminalEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -53,7 +61,7 @@ const TerminalLogs = ({ jobId, onComplete }) => {
 
   return (
     <div className="bg-[#0B0F17] text-green-400 font-mono p-6 rounded-2xl border border-gray-800 shadow-2xl w-full max-w-4xl my-6">
-      {/* Stage Header */}
+      {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 pb-3 border-b border-gray-800/80 gap-2">
         <div className="flex items-center space-x-2">
           <span className={`w-2.5 h-2.5 rounded-full ${progress === 100 ? 'bg-emerald-500' : 'bg-blue-500 animate-ping'}`}></span>
@@ -83,7 +91,7 @@ const TerminalLogs = ({ jobId, onComplete }) => {
         </div>
       </div>
 
-      {/* 4-Stage Pipeline Progress Tracker */}
+      {/* Stage Tracker */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-6 text-xs">
         <div className={`p-2.5 rounded-xl border text-center transition-all ${
           progress >= 25 ? 'bg-blue-950/40 border-blue-500/40 text-blue-300' : 'bg-gray-900/40 border-gray-800 text-gray-600'
@@ -114,7 +122,7 @@ const TerminalLogs = ({ jobId, onComplete }) => {
         </div>
       </div>
 
-      {/* Terminal Output */}
+      {/* Terminal View Output */}
       <div className="h-56 overflow-y-auto space-y-2 text-xs bg-[#05070C] p-4 rounded-xl border border-gray-800/80 pr-2">
         {logs.length === 0 ? (
           <p className="text-gray-600 animate-pulse">&gt; Waiting for stream initialization...</p>

@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/mr-aniket-2004/Journey/main/assets/banner.png" alt="SecScan Banner" width="100%"/>
+
 
 # 🛡️ SecScan Engine
 
@@ -31,6 +31,7 @@
 </div>
 
 ---
+<img src="https://i.ibb.co/Pz6cTrQZ/HEADER.png" alt="SecScan Banner" width="100%"/>
 
 **SecScan Engine** is a high-performance, full-stack security platform that performs automated threat audits on public GitHub repositories. It clones repositories, executes regex-based pattern matching to catch leaked API secrets, scans package manifests for known vulnerabilities, and generates downloadable, executive-ready PDF security reports — all in the background, without blocking the user.
 
@@ -233,6 +234,6 @@ Distributed under the **MIT License**. See `LICENSE` for more information.
 
 ### ⭐ If you find this project useful, consider giving it a star!
 
-<img src="https://raw.githubusercontent.com/mr-aniket-2004/Journey/main/assets/banner.png" alt="footer" width="60%"/>
+<img src="https://i.ibb.co/wh2Jhmc6/footer.png" alt="footer" width="100%" height="75%"/>
 
 </div>

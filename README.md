@@ -191,9 +191,9 @@ npm run dev
 
 | Service | Host | Live URL |
 |---|---|---|
-| 🎨 **Frontend UI** | Vercel | [secure-scan-plum.vercel.app](https://secure-scan-plum.vercel.app/) |
-| ⚙️ **Backend API** | Render | [securescan-9cv9.onrender.com](https://securescan-9cv9.onrender.com) |
-| 📖 **Swagger Docs** | Render | [securescan-9cv9.onrender.com/docs](https://securescan-9cv9.onrender.com/docs) |
+| 🎨 **Frontend UI** | Vercel | [secure-scan-plum.vercel.app](https://secure-scan-beta.vercel.app/) |
+| ⚙️ **Backend API** | Render | [securescan-9cv9.onrender.com](https://securescan-hg2e.onrender.com/) |
+| 📖 **Swagger Docs** | Render | [securescan-9cv9.onrender.com/docs](https://securescan-hg2e.onrender.com/docs) |
 
 </div>
 

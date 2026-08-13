@@ -1,43 +1,56 @@
 import React, { useEffect, useState } from 'react';
 import { X, Bot, ShieldAlert, Code2, Loader2, AlertCircle } from 'lucide-react';
 
+
+// TODO: Update this import path to point to where API_BASE_URL is defined in your project
+// e.g., import { API_BASE_URL } from '../api/config';
+const API_BASE_URL ='https://securescan-hg2e.onrender.com/api/v1';
+
 export default function RemediationModal({ isOpen = true, onClose, finding }) {
   const [remediation, setRemediation] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (isOpen && finding) {
-      setLoading(true);
-      setError(null);
+    if (!isOpen || !finding) return;
 
-      const query = new URLSearchParams({
-        issue_type: finding.issue_type || '',
-        file_path: finding.file_path || '',
-        line_number: finding.line_number || 1,
-        validation_status: finding.validation_status || 'UNVERIFIED'
-      });
+    const controller = new AbortController();
+    setLoading(true);
+    setError(null);
 
-      fetch(`http://localhost:8000/api/remediation?${query.toString()}`)
-        .then((res) => {
-          if (!res.ok) {
-            throw new Error(`Server returned HTTP status ${res.status}`);
-          }
-          return res.json();
-        })
-        .then((data) => {
-          if (data.status === 'SUCCESS' || data.remediation) {
-            setRemediation(data.remediation || data);
-          } else {
-            setError(data.message || 'Failed to generate remediation guide.');
-          }
-        })
-        .catch((err) => {
-          console.error('Failed to fetch remediation:', err);
-          setError('Unable to reach backend endpoint at http://localhost:8000/api/remediation.');
-        })
-        .finally(() => setLoading(false));
-    }
+    const query = new URLSearchParams({
+      issue_type: finding.issue_type || '',
+      file_path: finding.file_path || '',
+      line_number: finding.line_number || 1,
+      validation_status: finding.validation_status || 'UNVERIFIED'
+    });
+
+    fetch(`${API_BASE_URL}/remediation?${query.toString()}`, {
+      signal: controller.signal
+    })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`Server returned status ${res.status}`);
+        }
+        return res.json();
+      })
+      .then((data) => {
+        if (data.status === 'SUCCESS' || data.remediation) {
+          setRemediation(data.remediation || data);
+        } else {
+          setError(data.message || 'Failed to generate remediation guide.');
+        }
+      })
+      .catch((err) => {
+        if (err.name === 'AbortError') return; // Ignore request cancellations
+        console.error('Failed to fetch remediation:', err);
+        setError('Unable to reach the remediation service. Please check backend network connectivity.');
+      })
+      .finally(() => setLoading(false));
+
+    return () => {
+      controller.abort(); // Cleanup fetch request on unmount/close
+    };
   }, [isOpen, finding]);
 
   if (!isOpen || !finding) return null;

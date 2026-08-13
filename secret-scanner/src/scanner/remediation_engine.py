@@ -46,9 +46,28 @@ class AIRemediationEngine:
     ) -> Dict[str, Any]:
         genai.configure(api_key=api_key)
 
-        # List of candidate models to try sequentially in case of deprecation or region limits
-        candidate_models = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"]
-        last_error = None
+        # Offload sync I/O operation (list_models) to thread worker to prevent event loop blocking
+        def get_active_models():
+            discovered = []
+            try:
+                for m in genai.list_models():
+                    if "generateContent" in m.supported_generation_methods:
+                        # Clean model name string (strip 'models/' prefix if present)
+                        clean_name = m.name.replace("models/", "")
+                        discovered.append(clean_name)
+                # Prioritize flash models
+                discovered.sort(key=lambda name: 0 if "flash" in name.lower() else 1)
+            except Exception as e:
+                print(f"[AIRemediationEngine] Failed to list models: {e}")
+            return discovered
+
+        candidate_models = await asyncio.to_thread(get_active_models)
+
+        # Static fallback list if dynamic discovery returns empty
+        if not candidate_models:
+            candidate_models = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-1.0-pro"]
+
+        print(f"[AIRemediationEngine] Discovered candidate models: {candidate_models}")
 
         prompt = f"""
         You are an Application Security Engineer. A security scanner detected an issue in a codebase.
@@ -73,6 +92,7 @@ class AIRemediationEngine:
         }}
         """
 
+        last_error = None
         for model_name in candidate_models:
             try:
                 model = genai.GenerativeModel(
@@ -83,9 +103,8 @@ class AIRemediationEngine:
                 return json.loads(response.text)
             except Exception as e:
                 last_error = e
-                print(f"[AIRemediationEngine] Model '{model_name}' failed ({e}). Trying fallback model...")
+                print(f"[AIRemediationEngine] Model '{model_name}' execution failed: {e}. Trying next model...")
 
-        # If every candidate model fails, raise the final exception to trigger template fallback
         raise last_error
 
     @staticmethod
@@ -95,7 +114,6 @@ class AIRemediationEngine:
         is_active = validation_status == "ACTIVE"
         issue_type_lower = issue_type.lower()
 
-        # Check if this issue is a vulnerable package dependency rather than a secret leak
         is_dependency_issue = any(k in issue_type_lower for k in ["vulnerable", "package", "npm", "dependency", "pip"])
 
         remediations = {
@@ -163,11 +181,9 @@ class AIRemediationEngine:
             }
         }
 
-        # 1. Check for exact template match
         if issue_type in remediations:
             return remediations[issue_type]
 
-        # 2. Dynamic Fallback for Package / Dependency Vulnerabilities
         if is_dependency_issue:
             return {
                 "title": f"Upgrade {issue_type}",
@@ -179,10 +195,9 @@ class AIRemediationEngine:
                     "3. Run Audit: Execute `npm audit fix` or `pip audit` to verify the patch.",
                     "4. Run Tests: Execute unit/integration tests to ensure no breaking API changes occurred."
                 ],
-                "code_example": "// Example fix in package.json:\n// Upgrade package version to safe release\n\"dependencies\": {\n  \"axios\": \"^1.7.4\"\n}"
+                "code_example": "// Example fix in package.json:\n\"dependencies\": {\n  \"axios\": \"^1.7.4\"\n}"
             }
 
-        # 3. Default Fallback for Unrecognized Secret Types
         return {
             "title": f"Remediate Leaked {issue_type}",
             "urgency": "CRITICAL" if is_active else "MEDIUM",

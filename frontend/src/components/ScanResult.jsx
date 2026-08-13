@@ -1,8 +1,11 @@
-import React from 'react';
-import { Download, ShieldCheck, FileText, Loader2, CheckCircle2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Download, ShieldCheck, FileText, Loader2, CheckCircle2, Bot, AlertTriangle } from 'lucide-react';
 import { getPdfDownloadUrl } from '../services/api';
+import RemediationModal from './RemediationModal';
 
 export default function ScanResult({ job }) {
+  const [selectedFinding, setSelectedFinding] = useState(null);
+
   // Empty State before any scan is submitted
   if (!job) {
     return (
@@ -18,6 +21,7 @@ export default function ScanResult({ job }) {
 
   const isCompleted = job.status === 'COMPLETED';
   const isInProgress = job.status === 'IN_PROGRESS' || job.status === 'PENDING';
+  const isFailed = job.status === 'FAILED';
 
   const getScoreBadge = (score) => {
     switch (score) {
@@ -56,7 +60,6 @@ export default function ScanResult({ job }) {
     }
   };
 
-  // Status badge styling for Feature 1 validation status
   const getValidationBadge = (status) => {
     switch (status?.toUpperCase()) {
       case 'ACTIVE':
@@ -66,6 +69,20 @@ export default function ScanResult({ job }) {
       default:
         return 'bg-slate-500/20 text-slate-400 border-slate-500/40';
     }
+  };
+
+  // Normalizes finding data before sending it to RemediationModal
+  const handleOpenFixGuide = (finding) => {
+    const rawPath = finding.file_path || finding.file || 'Unknown Path';
+    const normalizedPath = rawPath.replace(/\\/g, '/'); // Converts Windows backslashes to standard slashes
+
+    setSelectedFinding({
+      ...finding,
+      file_path: normalizedPath,
+      issue_type: finding.issue_type || finding.rule_id || 'Security Vulnerability',
+      line_number: finding.line_number || finding.line || 1,
+      validation_status: finding.validation_status || 'UNVERIFIED',
+    });
   };
 
   const scoreInfo = getScoreBadge(job.security_score);
@@ -101,6 +118,17 @@ export default function ScanResult({ job }) {
             <p className="text-white font-semibold text-base">Running Security Audit...</p>
             <p className="text-slate-400 text-xs mt-1">Cloning code repository, validating tokens, and inspecting package dependencies.</p>
           </div>
+        </div>
+      )}
+
+      {/* Failed State */}
+      {isFailed && (
+        <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl p-8 text-center my-4">
+          <AlertTriangle className="w-10 h-10 text-rose-400 mx-auto mb-3" />
+          <h4 className="text-rose-400 font-semibold text-lg mb-1">Scan Job Failed</h4>
+          <p className="text-slate-400 text-sm max-w-md mx-auto">
+            An error occurred while cloning or scanning this repository. Check your backend terminal output for details.
+          </p>
         </div>
       )}
 
@@ -161,46 +189,73 @@ export default function ScanResult({ job }) {
               </div>
             ) : (
               <div className="overflow-x-auto border border-slate-700/80 rounded-xl">
-                <table className="w-full text-left text-sm text-slate-300">
+                <table className="w-full text-left text-sm text-slate-300 border-collapse">
                   <thead className="bg-slate-900/90 text-slate-400 uppercase text-xs font-semibold tracking-wider border-b border-slate-700/80">
                     <tr>
-                      <th className="py-3.5 px-4">Severity</th>
-                      <th className="py-3.5 px-4">Status</th>
-                      <th className="py-3.5 px-4">Type</th>
-                      <th className="py-3.5 px-4">File Path</th>
-                      <th className="py-3.5 px-4">Line</th>
-                      <th className="py-3.5 px-4">Match Preview</th>
+                      <th className="py-3.5 px-3">Severity</th>
+                      <th className="py-3.5 px-3">Status</th>
+                      <th className="py-3.5 px-3">Type</th>
+                      <th className="py-3.5 px-3">File Path</th>
+                      <th className="py-3.5 px-3">Line</th>
+                      <th className="py-3.5 px-3">Match Preview</th>
+                      <th className="py-3.5 px-3 text-right">AI Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-700/60 bg-slate-900/40">
-                    {job.findings.map((finding, idx) => (
-                      <tr key={finding.id || `finding-${idx}`} className="hover:bg-slate-700/30 transition-colors">
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <span className={`inline-block px-2.5 py-0.5 text-xs font-semibold rounded-md border ${getSeverityBadge(finding.severity)}`}>
-                            {finding.severity}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <span className={`inline-block px-2.5 py-0.5 text-xs font-semibold rounded-md border ${getValidationBadge(finding.validation_status)}`}>
-                            {finding.validation_status || 'UNVERIFIED'}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 font-medium text-white whitespace-nowrap">{finding.issue_type}</td>
-                        <td className="py-3.5 px-4 font-mono text-slate-300 text-xs whitespace-nowrap">{finding.file_path}</td>
-                        <td className="py-3.5 px-4 font-mono text-slate-400 text-xs whitespace-nowrap">{finding.line_number}</td>
-                        <td className="py-3.5 px-4 font-mono text-rose-300 text-xs">
-                          <span className="bg-rose-500/10 border border-rose-500/20 px-2 py-1 rounded inline-block max-w-xs truncate">
-                            {finding.raw_match}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
+                    {job.findings.map((finding, idx) => {
+                      const displayPath = (finding.file_path || finding.file || 'Unknown').replace(/\\/g, '/');
+                      return (
+                        <tr key={finding.id || `finding-${idx}`} className="hover:bg-slate-700/30 transition-colors">
+                          <td className="py-3.5 px-3">
+                            <span className={`inline-block px-2 py-0.5 text-xs font-semibold rounded-md border ${getSeverityBadge(finding.severity)}`}>
+                              {finding.severity || 'MEDIUM'}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-3">
+                            <span className={`inline-block px-2 py-0.5 text-xs font-semibold rounded-md border ${getValidationBadge(finding.validation_status)}`}>
+                              {finding.validation_status || 'UNVERIFIED'}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-3 font-medium text-white max-w-[160px] truncate" title={finding.issue_type}>
+                            {finding.issue_type || 'Vulnerability'}
+                          </td>
+                          <td className="py-3.5 px-3 font-mono text-slate-300 text-xs max-w-[200px] truncate" title={displayPath}>
+                            {displayPath}
+                          </td>
+                          <td className="py-3.5 px-3 font-mono text-slate-400 text-xs">
+                            {finding.line_number || finding.line || 0}
+                          </td>
+                          <td className="py-3.5 px-3 font-mono text-rose-300 text-xs max-w-[180px] truncate">
+                            <span className="bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded inline-block truncate max-w-full" title={finding.raw_match}>
+                              {finding.raw_match || 'N/A'}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-3 text-right">
+                            <button
+                              onClick={() => handleOpenFixGuide(finding)}
+                              className="inline-flex items-center gap-1.5 bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/40 text-blue-300 hover:text-white px-3 py-1 rounded-lg text-xs font-medium transition-all active:scale-95 shrink-0"
+                            >
+                              <Bot className="w-3.5 h-3.5" />
+                              Fix Guide
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
             )}
           </div>
         </>
+      )}
+
+      {/* AI Remediation Guide Modal */}
+      {selectedFinding && (
+        <RemediationModal
+          finding={selectedFinding}
+          onClose={() => setSelectedFinding(null)}
+        />
       )}
     </div>
   );

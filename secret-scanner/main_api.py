@@ -19,6 +19,8 @@ from src.db.database import get_db, engine, Base, SessionLocal
 from src.db.models import ScanJob
 from src.api.schemas import ScanRequest, ScanJobResponse
 from src.scanner.orchestrator import run_scan_job
+from src.scanner.remediation_engine import AIRemediationEngine
+
 
 # Configure logger for Render visibility
 logger = logging.getLogger("uvicorn.error")
@@ -56,13 +58,13 @@ app.add_middleware(
 )
 
 
-# 2. SYNCHRONOUS BACKGROUND TASK WORKER
-def process_scan_background(job_id: str):
-    """Executes the scan orchestrator in a threadpool worker and manages DB sessions."""
+# 2. ASYNC BACKGROUND TASK WORKER (Fixed with await)
+async def process_scan_background(job_id: str):
+    """Executes the async scan orchestrator background worker and manages DB sessions."""
     db = SessionLocal()
     try:
-        # Call the synchronous orchestrator pipeline (DO NOT await)
-        run_scan_job(job_id, db)
+        # Await the async orchestrator pipeline
+        await run_scan_job(job_id, db)
     except Exception as e:
         logger.error(f"Background task failed for job {job_id}: {e}")
         # Mark job as FAILED so frontend stops waiting endlessly
@@ -101,7 +103,7 @@ def create_scan_job(
     db.commit()
     db.refresh(new_job)
 
-    # Queue scanning execution task to FastAPI threadpool
+    # Queue scanning execution task to FastAPI worker pool
     background_tasks.add_task(process_scan_background, new_job.id)
     
     return new_job
@@ -134,3 +136,17 @@ def download_pdf_report(job_id: str, db: Session = Depends(get_db)):
         filename=f"Security_Report_{job_id[:8]}.pdf",
         media_type="application/pdf"
     )
+
+
+@app.get("/api/remediation")
+async def get_remediation(issue_type: str, file_path: str, line_number: int, validation_status: str = "UNVERIFIED"):
+    """
+    Returns AI-generated step-by-step remediation guide for a specific finding.
+    """
+    guide = await AIRemediationEngine.generate_remediation(
+        issue_type=issue_type,
+        file_path=file_path,
+        line_number=line_number,
+        validation_status=validation_status
+    )
+    return {"status": "SUCCESS", "remediation": guide}

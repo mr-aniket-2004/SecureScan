@@ -53,7 +53,7 @@ Thumbs.db
 
 # ==========================================
 # Local Tests Folder (Ignored)
-# ==========================================
+# 
 tests/
 .pytest_cache/
 .coverage

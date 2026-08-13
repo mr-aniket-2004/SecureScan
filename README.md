@@ -142,7 +142,7 @@ SecureScan/
 ### Prerequisites
 
 ![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white)
-![Node](https://img.shields.io/badge/Node.js-v18+-339933?style=flat-square&logo=node.js&logoColor=white)
+![React](https://img.shields.io/badge/React.js-v18+-20232A?style=flat-square&logo=react&logoColor=61DAFB)
 ![Git](https://img.shields.io/badge/Git-Required-F05032?style=flat-square&logo=git&logoColor=white)
 
 ### 1. Clone the Repository

@@ -46,11 +46,17 @@
 ### 🔐 Secret Detection
 High-speed regex engine scans every file in a cloned repository for leaked API keys, tokens, and credentials before they become a breach.
 
+### 🌐 Live Token Validation
+Automatically tests detected credentials against active provider APIs (GitHub, OpenAI, Slack, etc.) to verify if the leaked token is live (`ACTIVE`) or revoked (`UNVERIFIED`).
+
 ### 📦 Dependency Auditing
 Automatically parses package manifests (`package.json`, `requirements.txt`, etc.) and flags known vulnerable dependencies.
 
 </td>
 <td width="50%" valign="top">
+
+### 🤖 AI-Powered Remediation
+Generates context-aware, step-by-step fix recommendations and code snippets using Google Gemini AI with automatic dynamic model failovers.
 
 ### 📄 Executive PDF Reports
 Every scan produces a clean, downloadable PDF report — perfect for sharing with stakeholders or compliance teams.

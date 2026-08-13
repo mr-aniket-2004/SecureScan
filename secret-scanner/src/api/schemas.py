@@ -14,6 +14,7 @@ class FindingResponse(BaseModel):
     issue_type: str
     severity: str
     raw_match: Optional[str]
+    validation_status: str
     commit_hash: Optional[str]
     author: Optional[str]
 

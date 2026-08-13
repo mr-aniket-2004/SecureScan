@@ -32,6 +32,9 @@ class ScanFinding(Base):
     raw_match = Column(Text, nullable=True)
     commit_hash = Column(String(40), nullable=True)
     author = Column(String(100), nullable=True)
+    
+    # NEW FIELD FOR FEATURE 1: Stores active state of detected tokens
+    validation_status = Column(String(20), nullable=False, default="UNVERIFIED")  # ACTIVE, REVOKED, UNVERIFIED
 
     # Link back to scan_job
     job = relationship("ScanJob", back_populates="findings")

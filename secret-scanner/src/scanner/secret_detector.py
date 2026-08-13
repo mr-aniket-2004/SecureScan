@@ -2,13 +2,15 @@ import os
 import re
 from typing import List, Dict, Any
 
+from src.scanner.validators.validator_factory import ValidatorFactory
+
 # High-precision Regex patterns for common leaked secrets
 SECRET_PATTERNS = {
     "AWS Access Key": r"AKIA[0-9A-Z]{16}",
-    # Updated: matches variables containing 'api', 'key', 'secret', 'token', 'pass' with min length 10
-    "Generic API Key": r"(?i)(api|key|secret|password|token)\s*[:=]\s*['\"]([A-Za-z0-9_\-]{10,})['\"]",
     "GitHub Personal Access Token": r"ghp_[a-zA-Z0-9]{36}",
     "Slack Bot Token": r"xoxb-[0-9]{11}-[0-9]{11}-[a-zA-Z0-9]{24}",
+    "OpenAI API Key": r"sk-(proj-)?[a-zA-Z0-9_-]{32,}",
+    "Generic API Key": r"(?i)(api|key|secret|password|token)\s*[:=]\s*['\"]([A-Za-z0-9_\-]{10,})['\"]",
     "RSA Private Key": r"-----BEGIN RSA PRIVATE KEY-----",
     "JWT Token": r"eyJ[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*"
 }
@@ -22,7 +24,7 @@ class SecretDetector:
     def __init__(self, target_dir: str):
         self.target_dir = target_dir
 
-    def scan(self) -> List[Dict[str, Any]]:
+    async def scan(self) -> List[Dict[str, Any]]:
         findings = []
 
         for root, dirs, files in os.walk(self.target_dir):
@@ -40,15 +42,32 @@ class SecretDetector:
                             for secret_type, pattern in SECRET_PATTERNS.items():
                                 match = re.search(pattern, line)
                                 if match:
+                                    full_match = match.group(0)
+                                    
+                                    # Extract inner group for generic keys if present, else full match
+                                    token_to_validate = match.group(2) if secret_type == "Generic API Key" and match.lastindex and match.lastindex >= 2 else full_match
+
+                                    # 1. LIVE VALIDATION CALL
+                                    status = await ValidatorFactory.validate(secret_type, token_to_validate)
+
+                                    # 2. SEVERITY ELEVATION (ACTIVE keys become CRITICAL)
+                                    severity = "CRITICAL" if status == "ACTIVE" else ("HIGH" if "Key" in secret_type or "Token" in secret_type else "MEDIUM")
+
+                                    # 3. MASK MATCH FOR DISPLAY
+                                    masked_match = full_match[:10] + "..." if len(full_match) > 10 else full_match
+
                                     findings.append({
                                         "file_path": relative_path,
                                         "line_number": line_no,
                                         "issue_type": secret_type,
-                                        "severity": "HIGH" if "Key" in secret_type or "Token" in secret_type else "MEDIUM",
-                                        "raw_match": match.group(0)[:10] + "..." # Mask full secret for security
+                                        "severity": severity,
+                                        "raw_match": masked_match,
+                                        "validation_status": status,  # <--- CRITICAL FIELD
+                                        "commit_hash": None,
+                                        "author": None
                                     })
-                except Exception as e:
-                    # Log and skip unreadable files
+                except Exception:
+                    # Skip unreadable binary files
                     continue
 
         return findings

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Download, ShieldCheck, FileText, Loader2, AlertTriangle, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { Download, ShieldCheck, FileText, Loader2, CheckCircle2 } from 'lucide-react';
 import { getPdfDownloadUrl } from '../services/api';
 
 export default function ScanResult({ job }) {
@@ -56,6 +56,18 @@ export default function ScanResult({ job }) {
     }
   };
 
+  // Status badge styling for Feature 1 validation status
+  const getValidationBadge = (status) => {
+    switch (status?.toUpperCase()) {
+      case 'ACTIVE':
+        return 'bg-rose-500/20 text-rose-300 border-rose-500/40 font-bold';
+      case 'REVOKED':
+        return 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40';
+      default:
+        return 'bg-slate-500/20 text-slate-400 border-slate-500/40';
+    }
+  };
+
   const scoreInfo = getScoreBadge(job.security_score);
 
   return (
@@ -87,7 +99,7 @@ export default function ScanResult({ job }) {
           <Loader2 className="w-10 h-10 text-blue-500 animate-spin" />
           <div className="text-center">
             <p className="text-white font-semibold text-base">Running Security Audit...</p>
-            <p className="text-slate-400 text-xs mt-1">Cloning code repository, running regex detection, and inspecting packages.</p>
+            <p className="text-slate-400 text-xs mt-1">Cloning code repository, validating tokens, and inspecting package dependencies.</p>
           </div>
         </div>
       )}
@@ -153,6 +165,7 @@ export default function ScanResult({ job }) {
                   <thead className="bg-slate-900/90 text-slate-400 uppercase text-xs font-semibold tracking-wider border-b border-slate-700/80">
                     <tr>
                       <th className="py-3.5 px-4">Severity</th>
+                      <th className="py-3.5 px-4">Status</th>
                       <th className="py-3.5 px-4">Type</th>
                       <th className="py-3.5 px-4">File Path</th>
                       <th className="py-3.5 px-4">Line</th>
@@ -160,11 +173,16 @@ export default function ScanResult({ job }) {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-700/60 bg-slate-900/40">
-                    {job.findings.map((finding) => (
-                      <tr key={finding.id} className="hover:bg-slate-700/30 transition-colors">
+                    {job.findings.map((finding, idx) => (
+                      <tr key={finding.id || `finding-${idx}`} className="hover:bg-slate-700/30 transition-colors">
                         <td className="py-3.5 px-4 whitespace-nowrap">
                           <span className={`inline-block px-2.5 py-0.5 text-xs font-semibold rounded-md border ${getSeverityBadge(finding.severity)}`}>
                             {finding.severity}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 whitespace-nowrap">
+                          <span className={`inline-block px-2.5 py-0.5 text-xs font-semibold rounded-md border ${getValidationBadge(finding.validation_status)}`}>
+                            {finding.validation_status || 'UNVERIFIED'}
                           </span>
                         </td>
                         <td className="py-3.5 px-4 font-medium text-white whitespace-nowrap">{finding.issue_type}</td>

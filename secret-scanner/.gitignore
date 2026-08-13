@@ -58,3 +58,4 @@ tests/
 .pytest_cache/
 .coverage
 testing/
+secret-scanner/tests/

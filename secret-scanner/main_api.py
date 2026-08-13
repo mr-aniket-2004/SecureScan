@@ -153,7 +153,7 @@ async def get_remediation(issue_type: str, file_path: str, line_number: int, val
 
 
 
-@app.get("/api/v1/health")
+@app.api_route("/api/v1/health", methods=["GET", "HEAD"])
 def health_check():
     return {
         "status": "healthy",

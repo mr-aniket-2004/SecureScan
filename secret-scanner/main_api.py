@@ -138,7 +138,7 @@ def download_pdf_report(job_id: str, db: Session = Depends(get_db)):
     )
 
 
-@app.get("/api/remediation")
+@app.get("/api/v1/remediation")
 async def get_remediation(issue_type: str, file_path: str, line_number: int, validation_status: str = "UNVERIFIED"):
     """
     Returns AI-generated step-by-step remediation guide for a specific finding.

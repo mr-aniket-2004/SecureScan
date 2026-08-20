@@ -26,4 +26,6 @@ runs:
 
     - name: Run Security Scan
       shell: bash
+      env:
+        PYTHONPATH: ${{ github.action_path }}
       run: python -m src.cli.main --path ${{ inputs.scan-path }}

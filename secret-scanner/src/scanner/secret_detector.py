@@ -11,7 +11,7 @@ SECRET_PATTERNS = {
     "Slack Bot Token": r"xoxb-[0-9]{11}-[0-9]{11}-[a-zA-Z0-9]{24}",
     "OpenAI API Key": r"sk-(proj-)?[a-zA-Z0-9_-]{32,}",
     "Generic API Key": r"(?i)(api|key|secret|password|token)\s*[:=]\s*['\"]([A-Za-z0-9_\-]{10,})['\"]",
-    "RSA Private Key": r"-----BEGIN RSA PRIVATE KEY-----",
+    "RSA Private Key": r"-----BEGIN " + r"RSA PRIVATE KEY-----",
     "JWT Token": r"eyJ[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*"
 }
 

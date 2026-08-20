@@ -2,6 +2,7 @@ import os
 import json
 import re
 from typing import List, Dict, Any
+from packaging.version import parse as parse_version
 
 # Simple security database for common high-risk or outdated package versions
 KNOWN_VULNERABILITIES = {
@@ -48,14 +49,16 @@ class DependencyChecker:
                     match = re.match(r"^([a-zA-Z0-9_\-]+)\s*==\s*([0-9\.]+)", line)
                     if match:
                         pkg_name, version = match.group(1).lower(), match.group(2)
-                        if pkg_name in KNOWN_VULNERABILITIES:
-                            info = KNOWN_VULNERABILITIES[pkg_name]
+                    if pkg_name in KNOWN_VULNERABILITIES:
+                        info = KNOWN_VULNERABILITIES[pkg_name]
+                        # COMPARE VERSIONS CORRECTLY:
+                        if parse_version(version) < parse_version(info["vulnerable_below"]):
                             findings.append({
                                 "file_path": rel_path,
                                 "line_number": line_no,
                                 "issue_type": f"Vulnerable Dependency ({pkg_name} {version})",
                                 "severity": info["severity"],
-                                "raw_match": f"{pkg_name}=={version} ({info['cve']})"
+                                "raw_match": f"{pkg_name}=={version} (Fixed in >={info['vulnerable_below']})"
                             })
         except Exception:
             pass

@@ -217,6 +217,43 @@ npm run dev
 
 <br/>
 
+## 🤖 GitHub Action CI/CD Integration
+
+Integrate Ani Secret & Vulnerability Scanner directly into your repositories to catch secrets and vulnerable packages during Pull Requests.
+
+
+Step 1: Create Workflow Directory
+In your target repository, create .github/workflows/security.yml.
+
+Step 2: Add Workflow Configuration
+Paste the following YAML configuration inside .github/workflows/security.yml:
+
+
+```yaml
+name: CI Security Audit
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  security-audit:
+    name: Run Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run Ani Secret Scanner
+        uses: mr-aniket-2004/SecureScan@v1
+        with:
+          scan-path: '.'
+
+```
+
+
 ## 🤝 Contributing
 
 Contributions, issues, and feature requests are welcome!

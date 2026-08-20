@@ -22,10 +22,17 @@ runs:
         python -m pip install --upgrade pip
         if [ -f ${{ github.action_path }}/requirements-cli.txt ]; then
           pip install -r ${{ github.action_path }}/requirements-cli.txt
+        elif [ -f ${{ github.action_path }}/secret-scanner/requirements-cli.txt ]; then
+          pip install -r ${{ github.action_path }}/secret-scanner/requirements-cli.txt
         fi
 
     - name: Run Security Scan
       shell: bash
       env:
-        PYTHONPATH: ${{ github.action_path }}
-      run: python -m src.cli.main --path ${{ inputs.scan-path }}
+        PYTHONPATH: "${{ github.action_path }}:${{ github.action_path }}/secret-scanner"
+      run: |
+        if [ -f "${{ github.action_path }}/src/cli/main.py" ]; then
+          python "${{ github.action_path }}/src/cli/main.py" --path "${{ inputs.scan-path }}"
+        else
+          python "${{ github.action_path }}/secret-scanner/src/cli/main.py" --path "${{ inputs.scan-path }}"
+        fi

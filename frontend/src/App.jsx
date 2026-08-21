@@ -4,6 +4,7 @@ import HowItWorks from './components/HowItWorks';
 import ScanForm from './components/ScanForm';
 import ScanResult from './components/ScanResult';
 import Footer from './components/Footer';
+import OfflineDownload from './components/OfflineDownload';
 import { triggerScan, fetchScanStatus } from './services/api';
 
 export default function App() {

@@ -10,6 +10,7 @@ export default function App() {
   const [currentJob, setCurrentJob] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isOfflineModalOpen, setIsOfflineModalOpen] = useState(false);
 
   useEffect(() => {
     let intervalId;
@@ -85,7 +86,13 @@ export default function App() {
       </div>
 
       {/* Footer component with 'Download Offline' coming-soon action */}
-      <Footer />
+      <Footer onOpenOfflineModal={() => setIsOfflineModalOpen(true)} />
+
+      {/* Modal Component */}
+      <OfflineDownload 
+        isOpen={isOfflineModalOpen} 
+        onClose={() => setIsOfflineModalOpen(false)} 
+      />
     </div>
   );
 }

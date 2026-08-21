@@ -1,11 +1,7 @@
 import React from 'react';
-import { Shield, HardDriveDownload, Globe, Heart } from 'lucide-react';
+import { Shield, HardDriveDownload } from 'lucide-react';
 
-export default function Footer() {
-  const handleOfflineClick = () => {
-    alert("Offline Desktop App scanner (Electron / CLI package) coming soon in future releases!");
-  };
-
+export default function Footer({ onOpenOfflineModal }) {
   return (
     <footer className="border-t border-slate-800 bg-slate-900/90 backdrop-blur mt-16 py-8">
       <div className="max-w-6xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-400">
@@ -21,17 +17,17 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Center: Future Feature Button */}
+        {/* Center: Offline Download Modal Trigger */}
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={handleOfflineClick}
+            onClick={onOpenOfflineModal}
             className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 active:scale-[0.98] text-slate-200 border border-slate-700 px-4 py-2 rounded-xl font-medium transition text-xs shadow-md"
           >
-            <HardDriveDownload className="w-4 h-4 text-amber-400" />
-            <span>Download Offline</span>
-            <span className="bg-amber-500/10 text-amber-400 border border-amber-500/30 text-[10px] uppercase font-mono px-1.5 py-0.5 rounded ml-1">
-              Coming Soon
+            <HardDriveDownload className="w-4 h-4 text-emerald-400" />
+            <span>Download Offline CLI</span>
+            <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[10px] uppercase font-mono px-1.5 py-0.5 rounded ml-1">
+              v1.0 Live
             </span>
           </button>
         </div>

@@ -259,6 +259,57 @@ jobs:
 
 ```
 
+hey Ani! Here is the clean, plain Markdown text ready to copy and paste directly into your project's **`README.md`**:
+
+```markdown
+## 💻 Standalone Offline CLI Setup
+
+SecScan provides a standalone, single-binary executable (`securescan.exe`) that allows you to run secret detection and dependency audits completely offline in your local terminal or CI/CD pipelines.
+
+---
+
+### 🚀 Quick Installation Guide
+
+#### Step 1: Open PowerShell
+Press `Win + R`, type `powershell`, and press **Enter**.
+
+#### Step 2: Run the One-Line Global Installer
+Paste and run the following command in your PowerShell terminal:
+
+```powershell
+irm [https://raw.githubusercontent.com/mr-aniket-2004/SecureScan/main/install.ps1](https://raw.githubusercontent.com/mr-aniket-2004/SecureScan/main/install.ps1) | iex
+
+```
+
+> **Note:** This automatically downloads `securescan.exe` from GitHub Releases to `%LOCALAPPDATA%\SecScan` and registers it to your system PATH.
+
+#### Step 3: Restart Your Terminal
+
+Close your current terminal window and open a new PowerShell session to reload your updated system environment variables.
+
+#### Step 4: Run a Security Audit
+
+Navigate to any local codebase or repository on your machine and launch the scanner:
+
+```powershell
+cd C:\path\to\your\project
+securescan
+
+```
+
+---
+
+### 🛠️ CLI Usage & Command Flags
+
+| Command | Action |
+| --- | --- |
+| `securescan` | Scans the current working directory for leaked secrets and vulnerabilities |
+| `securescan --path C:\MyProject` | Runs a security audit on a specific target folder |
+| `securescan --help` | Displays help information and available options |
+
+```
+
+```
 
 ## 🤝 Contributing
 

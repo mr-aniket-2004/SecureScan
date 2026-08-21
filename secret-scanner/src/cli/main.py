@@ -3,21 +3,21 @@ import asyncio
 import sys
 from pathlib import Path
 
-# Import your existing engine classes
 from src.scanner.secret_detector import SecretDetector
 from src.scanner.dependency_checker import DependencyChecker
 
 async def run_cli():
     parser = argparse.ArgumentParser(
-        description="Ani's Secret & Dependency Scanner CLI"
+        description="SecScan CLI - Fast, offline secret & vulnerability scanner"
     )
     parser.add_argument(
         "--path",
         default=".",
-        help="Directory path to scan (defaults to current directory)",
+        help="Directory path to scan (defaults to current working directory)",
     )
     args = parser.parse_args()
 
+    # Resolve target directory (defaults to current directory '.')
     target_path = Path(args.path).resolve()
     print(f"🔍 Starting Security Scan on: {target_path}\n")
 
@@ -47,7 +47,7 @@ async def run_cli():
     total_vulns = len(dep_findings)
     total_issues = total_secrets + total_vulns
 
-    # 3. Print Results Summary
+    # 3. Summary Display
     print("\n" + "=" * 55)
     print("                 SECURITY AUDIT SUMMARY")
     print("=" * 55)
@@ -55,7 +55,7 @@ async def run_cli():
     print(f"• Vulnerabilities Detected: {total_vulns}")
     print("=" * 55 + "\n")
 
-    # 4. Handle Findings and Exit Codes
+    # 4. Results & System Exit Signals
     if total_issues > 0:
         print("❌ SECURITY CHECK FAILED! Fix the following issues:\n")
 
@@ -71,10 +71,10 @@ async def run_cli():
             print(f"  [{idx}] VULN: {file_p} | Details: {details}")
 
         print("\n💡 Action Required: Remove leaked credentials before merging.")
-        sys.exit(1)  # CRITICAL: Signals failure to GitHub Actions
+        sys.exit(1)
     else:
         print("✅ SECURITY CHECK PASSED: Codebase is clean.")
-        sys.exit(0)  # Signals success to GitHub Actions
+        sys.exit(0)
 
 if __name__ == "__main__":
     asyncio.run(run_cli())

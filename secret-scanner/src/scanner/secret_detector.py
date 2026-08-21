@@ -15,8 +15,17 @@ SECRET_PATTERNS = {
     "JWT Token": r"eyJ[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*"
 }
 
-# Directories and files to ignore during scan
-IGNORED_DIRS = {".git", "node_modules", "venv", ".venv", "__pycache__"}
+# Directories to ignore during scan
+IGNORED_DIRS = {
+    ".git", "node_modules", "venv", ".venv", "__pycache__", 
+    "build", "dist", "bin", "obj", ".idea", ".vscode"
+}
+
+# Binary and non-text file extensions to skip automatically
+IGNORED_EXTENSIONS = {
+    ".exe", ".dll", ".so", ".dylib", ".pyc", ".toc", 
+    ".pkg", ".zip", ".tar", ".gz", ".png", ".jpg", ".jpeg", ".pdf"
+}
 
 class SecretDetector:
     """Scans files in a directory for hardcoded secrets and credentials."""
@@ -32,6 +41,10 @@ class SecretDetector:
             dirs[:] = [d for d in dirs if d not in IGNORED_DIRS]
 
             for file in files:
+                # Skip binary files based on extension
+                if any(file.lower().endswith(ext) for ext in IGNORED_EXTENSIONS):
+                    continue
+
                 file_path = os.path.join(root, file)
                 relative_path = os.path.relpath(file_path, self.target_dir)
 

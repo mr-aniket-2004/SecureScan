@@ -59,3 +59,20 @@ tests/
 .coverage
 testing/
 secret-scanner/tests/
+
+
+
+# PyInstaller build artifacts
+build/
+dist/
+*.spec
+
+# Python virtual environment & cache
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# IDE configs
+.vscode/
+.idea/

@@ -52,14 +52,20 @@ Automatically tests detected credentials against active provider APIs (GitHub, O
 ### 📦 Dependency Auditing
 Automatically parses package manifests (`package.json`, `requirements.txt`, etc.) and flags known vulnerable dependencies.
 
+### 📄 Executive PDF Reports
+Every scan produces a clean, downloadable PDF report — perfect for sharing with stakeholders or compliance teams.
+
 </td>
 <td width="50%" valign="top">
 
 ### 🤖 AI-Powered Remediation
 Generates context-aware, step-by-step fix recommendations and code snippets using Google Gemini AI with automatic dynamic model failovers.
 
-### 📄 Executive PDF Reports
-Every scan produces a clean, downloadable PDF report — perfect for sharing with stakeholders or compliance teams.
+### ⚙️ CI/CD Integration
+Seamlessly plugs into GitHub Actions workflows to automatically scan pull requests and block credential leaks before merging.
+
+### 💻 Standalone Offline CLI
+Packaged into a portable, single-binary executable (`securescan.exe`) with a one-command global installer for local desktop audits.
 
 ### ⚡ Async Background Processing
 Scans run as background jobs so the API responds instantly while the heavy lifting happens behind the scenes.

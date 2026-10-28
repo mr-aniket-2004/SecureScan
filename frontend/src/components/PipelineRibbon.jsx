@@ -54,14 +54,14 @@ export default function PipelineRibbon({ scanResult, isScanning, onSelectPreset 
             <span className="text-zinc-500 text-[10px] sm:text-[11px]">QUICK PRESETS:</span>
             <button
               type="button"
-              onClick={() => onSelectPreset("mr-aniket-2004/Journey.git")}
+              onClick={() => onSelectPreset("https://github.com/mr-aniket-2004/Journey.git")}
               className="bg-[#121929] hover:bg-[#1a243a] text-cyan-300 hover:text-white px-2 py-0.5 rounded border border-cyan-900/50 text-[10px] sm:text-[11px] transition"
             >
               Journey.git
             </button>
             <button
               type="button"
-              onClick={() => onSelectPreset("mr-aniket-2004/SecureScan.git")}
+              onClick={() => onSelectPreset("https://github.com/mr-aniket-2004/SecureScan.git")}
               className="bg-[#121929] hover:bg-[#1a243a] text-zinc-400 hover:text-white px-2 py-0.5 rounded border border-zinc-800 text-[10px] sm:text-[11px] transition"
             >
               SecureScan.git

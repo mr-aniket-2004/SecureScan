@@ -1,10 +1,23 @@
-import React, { useState } from 'react';
-import { Download, ShieldCheck, FileText, Loader2, CheckCircle2, Bot, AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Download, ShieldCheck, FileText, Loader2, CheckCircle2, Bot, AlertTriangle, X } from 'lucide-react';
 import { getPdfDownloadUrl } from '../services/api';
 import RemediationModal from './RemediationModal';
 
+
 export default function ScanResult({ job }) {
   const [selectedFinding, setSelectedFinding] = useState(null);
+  const [showHealthyPopup, setShowHealthyPopup] = useState(false);
+
+  // Open the popup once when a scan completes with zero risks
+  useEffect(() => {
+    if (
+      Number(job.secrets_found) === 0 && Number(job.vulnerabilities_found) === 0
+
+    ) {
+      setShowHealthyPopup(true);
+    }
+    console.log(typeof job.secrets_found, job.secrets_found)
+  }, [job?.id, job?.status, job?.secrets_found, job?.vulnerabilities_found]);
 
   // Empty State before any scan is submitted
   if (!job) {
@@ -256,6 +269,59 @@ export default function ScanResult({ job }) {
           finding={selectedFinding}
           onClose={() => setSelectedFinding(null)}
         />
+      )}
+
+      {/* Healthy Repository Popup */}
+      {showHealthyPopup && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          onClick={() => setShowHealthyPopup(false)}
+        >
+          <div
+            className="relative w-full max-w-md bg-slate-900 border border-emerald-500/30 rounded-2xl p-8 text-center shadow-2xl shadow-emerald-500/10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setShowHealthyPopup(false)}
+              className="absolute top-4 right-4 text-slate-500 hover:text-white transition"
+              aria-label="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/10 border border-emerald-500/30">
+              <ShieldCheck className="w-10 h-10 text-emerald-400" />
+            </div>
+
+            <div className="inline-flex items-center gap-1.5 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-2">
+              <CheckCircle2 className="w-4 h-4" />
+              Scan Complete
+            </div>
+
+            <h3 className="text-2xl font-bold text-white mb-2">Repository is Healthy 🎉</h3>
+            <p className="text-slate-400 text-sm mb-6">
+              No exposed secrets or vulnerable dependencies were found in this repository.
+            </p>
+
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              <div className="bg-slate-800/80 border border-slate-700 rounded-xl p-3">
+                <p className="text-xs text-slate-400 uppercase">Secrets</p>
+                <p className="text-2xl font-bold text-emerald-400">0</p>
+              </div>
+              <div className="bg-slate-800/80 border border-slate-700 rounded-xl p-3">
+                <p className="text-xs text-slate-400 uppercase">Vulnerabilities</p>
+                <p className="text-2xl font-bold text-emerald-400">0</p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowHealthyPopup(false)}
+              className="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white font-semibold py-2.5 rounded-xl transition text-sm"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

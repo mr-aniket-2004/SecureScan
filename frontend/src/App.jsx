@@ -5,6 +5,7 @@ import RemediationWorkbench from './components/RemediationWorkbench';
 import Footer from './components/Footer';
 import OfflineDownload from './components/OfflineDownload';
 import { triggerScan, fetchScanStatus, getPdfDownloadUrl } from './services/api';
+import { ShieldCheck, CheckCircle2, X, Download } from 'lucide-react';
 
 export default function App() {
   const [repoUrl, setRepoUrl] = useState('');
@@ -18,6 +19,7 @@ export default function App() {
     'Connected to Supabase session store',
     'Git in-memory orchestrator: IDLE',
   ]);
+  const [showHealthyPopup, setShowHealthyPopup] = useState(false);
 
   // Exact polling effect from your original App.jsx
   useEffect(() => {
@@ -41,6 +43,14 @@ export default function App() {
               ]);
               if (findingsCount > 0) {
                 setSelectedFinding(updatedJob.findings[0]);
+              }
+
+              // Healthy repo popup
+              if (
+                Number(updatedJob.secrets_found) === 0 &&
+                Number(updatedJob.vulnerabilities_found) === 0
+              ) {
+                setShowHealthyPopup(true);
               }
             } else {
               setLogs((prev) => [...prev, 'Scan execution failed on server.']);
@@ -129,8 +139,8 @@ export default function App() {
               {currentJob?.status === 'COMPLETED'
                 ? `${currentJob.findings?.length || 0} items`
                 : isLoading
-                ? 'IN PROGRESS'
-                : 'READY'}
+                  ? 'IN PROGRESS'
+                  : 'READY'}
             </span>
           </div>
 
@@ -140,11 +150,10 @@ export default function App() {
                 <div
                   key={idx}
                   onClick={() => setSelectedFinding(f)}
-                  className={`p-3.5 cursor-pointer transition ${
-                    selectedFinding === f
-                      ? 'bg-zinc-900/60 border-l-2 border-rose-500'
-                      : 'hover:bg-zinc-900/20 border-l-2 border-transparent'
-                  }`}
+                  className={`p-3.5 cursor-pointer transition ${selectedFinding === f
+                    ? 'bg-zinc-900/60 border-l-2 border-rose-500'
+                    : 'hover:bg-zinc-900/20 border-l-2 border-transparent'
+                    }`}
                 >
                   <div className="flex items-center justify-between text-[11px] font-mono mb-1.5">
                     <span className="text-rose-400 font-bold bg-rose-950/60 border border-rose-800/60 px-1.5 py-0.5 rounded">
@@ -196,6 +205,67 @@ export default function App() {
         isOpen={isOfflineModalOpen}
         onClose={() => setIsOfflineModalOpen(false)}
       />
+
+      {showHealthyPopup && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          onClick={() => setShowHealthyPopup(false)}
+        >
+          <div
+            className="relative w-full max-w-md bg-[#0a0e18] border border-emerald-500/30 rounded-2xl p-8 text-center shadow-2xl shadow-emerald-500/10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setShowHealthyPopup(false)}
+              className="absolute top-4 right-4 text-zinc-500 hover:text-white transition"
+              aria-label="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/10 border border-emerald-500/30">
+              <ShieldCheck className="w-10 h-10 text-emerald-400" />
+            </div>
+
+            <div className="inline-flex items-center gap-1.5 text-emerald-400 text-xs font-mono font-semibold uppercase tracking-wider mb-2">
+              <CheckCircle2 className="w-4 h-4" />
+              Status: Completed
+            </div>
+
+            <h3 className="text-2xl font-bold text-white mb-2">Repository is Healthy 🎉</h3>
+            <p className="text-zinc-400 text-sm mb-6">
+              The scan finished with no exposed secrets and no vulnerable dependencies. 0 risks found.
+            </p>
+
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-3">
+                <p className="text-[11px] font-mono text-zinc-500 uppercase">Secrets</p>
+                <p className="text-2xl font-bold text-emerald-400">0</p>
+              </div>
+              <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-3">
+                <p className="text-[11px] font-mono text-zinc-500 uppercase">Vulnerabilities</p>
+                <p className="text-2xl font-bold text-emerald-400">0</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => setShowHealthyPopup(false)}
+                className="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white font-semibold py-2.5 rounded-xl transition text-sm"
+              >
+                Got it
+              </button>
+              <button
+                onClick={handleDownloadPdf}
+                className="w-full inline-flex items-center justify-center gap-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 active:scale-[0.98] text-zinc-200 font-semibold py-2.5 rounded-xl transition text-sm"
+              >
+                <Download className="w-4 h-4" />
+                Export PDF
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
